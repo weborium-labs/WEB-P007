@@ -10,28 +10,41 @@ enum Role {
   ADMIN
 }
 
+enum VerificationStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
-  id                 String       @id @default(uuid())
-  username           String       @unique
+  id                 String             @id @default(uuid())
+  username           String             @unique
   password           String?
-  email              String       @unique
+  email              String             @unique
   dob                String?
-  googleId           String?      @unique
+  googleId           String?            @unique
   phone              String?
-  authType           AuthType     @default(UNP)
+  authType           AuthType           @default(UNP)
   photoUrl           String?
   universityName     String?
-  role               Role         @default(INTERN)
-  activeStatus       Boolean      @default(true)
-  score              Float        @default(0.0)
-  verificationStatus Boolean      @default(false)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  role               Role               @default(INTERN)
+  activeStatus       Boolean            @default(true)
+  score              Float              @default(0.0)
+  verificationStatus VerificationStatus @default(NOT_SUBMITTED) // Enum instead of boolean
+  
+  // Activity tracking for BullMQ auto-deactivation workers (ACT-05)
+  lastLoginAt        DateTime?
+  lastActivityAt     DateTime?          @default(now())
+  deactivatedAt      DateTime?
+  
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   // Batch Relations
   batchId            String?
-  batch              Batch?       @relation("BatchInterns", fields: [batchId], references: [id], onDelete: SetNull)
-  managedBatches     Batch[]      @relation("BatchHRs")
+  batch              Batch?             @relation("BatchInterns", fields: [batchId], references: [id], onDelete: SetNull)
+  managedBatches     Batch[]            @relation("BatchHRs")
 
   // Documents Relation (1-to-1)
   documents          Document?
@@ -41,30 +54,48 @@ model User {
   leaves             Leave[]
 
   // Teams & Management
-  internTeams        Team[]       @relation("TeamInterns")
-  managerTeams       Team[]       @relation("TeamManagers")
-  assignedGpmTeams   Team[]       @relation("GpmDirect")
+  internTeams        Team[]             @relation("TeamInterns")
+  managerTeams       Team[]             @relation("TeamManagers")
+  assignedGpmTeams   Team[]             @relation("GpmDirect")
 
-  // Tasks & Tickets
-  tasksAssigned      Task[]       @relation("TasksCreatedBy")
-  ticketsCreated     Ticket[]     @relation("UserTickets")
-  ticketsResolved    Ticket[]     @relation("ResolvedTickets")
+  // Tasks (Assignments & Creations)
+  tasksAssigned      Task[]             @relation("TasksCreatedBy")
+  taskAssignments    TaskAssignment[]   // Resolves relation with TaskAssignment
+
+  // Tickets
+  ticketsCreated     Ticket[]           @relation("UserTickets")
+  ticketsResolved    Ticket[]           @relation("ResolvedTickets")
 
   // Chat Messages
   messagesSent       Message[]
 
   @@index([email])
   @@index([role])
+  @@index([activeStatus, lastActivityAt])
 }
 
 model Document {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  
+  // File URLs
   aadharUrl          String?
   pancardUrl         String?
   sscMarksheetUrl    String?
   hscMarksheetUrl    String?
-  verificationStatus Boolean  @default(false)
 
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Per-document rejection / status tracking (DOC-02, DOC-04)
+  aadharStatus       VerificationStatus @default(NOT_SUBMITTED)
+  pancardStatus      VerificationStatus @default(NOT_SUBMITTED)
+  sscStatus          VerificationStatus @default(NOT_SUBMITTED)
+  hscStatus          VerificationStatus @default(NOT_SUBMITTED)
+
+  rejectionReason    String?            // Reason sent to intern on rejection
+  reviewedBy         String?            // HR user ID who reviewed it
+  reviewedAt         DateTime?
+  
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

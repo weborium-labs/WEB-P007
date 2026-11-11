@@ -3,26 +3,48 @@ model Batch {
   name          String
   startDate     DateTime
   endDate       DateTime
+  isArchived    Boolean        @default(false) // BAT-04: Batch archiving flag
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   hr            User[]         @relation("BatchHRs")
   interns       User[]         @relation("BatchInterns")
   teams         Team[]
   tasks         Task[]
-  conversations Conversation[]
+  holidays      BatchHoliday[] // Required for accurate attendance % calculations
+  conversation  Conversation?  // 1-to-1: One primary batch chat channel
+
+  @@index([startDate, endDate])
+  @@index([isArchived])
+}
+
+model BatchHoliday {
+  id        String   @id @default(uuid())
+  batchId   String
+  title     String
+  date      DateTime @db.Date
+
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, date])
+  @@index([batchId])
 }
 
 model Team {
-  id            String         @id @default(uuid())
+  id            String        @id @default(uuid())
   name          String
   batchId       String
-  gpmId         String?
+  gpmId         String?       // Direct assigned Group Manager lead
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  batch         Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  gpm           User?          @relation("GpmDirect", fields: [gpmId], references: [id], onDelete: SetNull)
-  groupManagers User[]         @relation("TeamManagers")
-  interns       User[]         @relation("TeamInterns")
+  batch         Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  gpm           User?         @relation("GpmDirect", fields: [gpmId], references: [id], onDelete: SetNull)
+  groupManagers User[]        @relation("TeamManagers")
+  interns       User[]        @relation("TeamInterns")
   tasks         Task[]
-  conversations Conversation[]
+  conversation  Conversation? // 1-to-1: One primary team chat channel
 
+  @@unique([batchId, name]) // Prevents duplicate team names within the same batch
   @@index([batchId])
 }

@@ -1,23 +1,49 @@
 enum TaskStatus {
   PENDING
   TODO
+  IN_PROGRESS
+  SUBMITTED
   DONE
 }
 
 model Task {
-  id          String     @id @default(uuid())
+  id          String           @id @default(uuid())
   name        String
+  description String?
   startDate   DateTime
   endDate     DateTime
   attachments String[]
   assignedBy  String
   batchId     String
-  teamId      String
-  status      TaskStatus @default(PENDING)
+  teamId      String?          // Optional: Null if assigned batch-wide to all interns
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  creator     User       @relation("TasksCreatedBy", fields: [assignedBy], references: [id])
-  batch       Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  team        Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  creator     User             @relation("TasksCreatedBy", fields: [assignedBy], references: [id])
+  batch       Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  team        Team?            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignments TaskAssignment[] // Individual progress tracking for each intern
 
   @@index([batchId, teamId])
+}
+
+model TaskAssignment {
+  id              String     @id @default(uuid())
+  taskId          String
+  internId        String
+  status          TaskStatus @default(PENDING)
+  submissionFiles String[]   // URLs of files uploaded by the intern
+  repoUrl         String?    // GitHub/GitLab link
+  liveUrl         String?    // Deployed project link
+  score           Float?     // Performance score given by manager/HR
+  feedback        String?    // Review feedback
+  submittedAt     DateTime?
+  evaluatedAt     DateTime?
+
+  task            Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  intern          User       @relation(fields: [internId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, internId]) // One progress card per intern per task
+  @@index([taskId, status])
+  @@index([internId])
 }

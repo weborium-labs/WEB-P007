@@ -1,7 +1,7 @@
 model Conversation {
   id        String    @id @default(uuid())
-  batchId   String?
-  teamId    String?
+  batchId   String?   @unique // Enforces exactly one channel per batch
+  teamId    String?   @unique // Enforces exactly one channel per team
 
   batch     Batch?    @relation(fields: [batchId], references: [id], onDelete: Cascade)
   team      Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
