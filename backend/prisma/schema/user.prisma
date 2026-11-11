@@ -1,0 +1,70 @@
+enum AuthType {
+  UNP
+  GOOGLE
+}
+
+enum Role {
+  INTERN
+  HR
+  GPM
+  ADMIN
+}
+
+model User {
+  id                 String       @id @default(uuid())
+  username           String       @unique
+  password           String?
+  email              String       @unique
+  dob                String?
+  googleId           String?      @unique
+  phone              String?
+  authType           AuthType     @default(UNP)
+  photoUrl           String?
+  universityName     String?
+  role               Role         @default(INTERN)
+  activeStatus       Boolean      @default(true)
+  score              Float        @default(0.0)
+  verificationStatus Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  // Batch Relations
+  batchId            String?
+  batch              Batch?       @relation("BatchInterns", fields: [batchId], references: [id], onDelete: SetNull)
+  managedBatches     Batch[]      @relation("BatchHRs")
+
+  // Documents Relation (1-to-1)
+  documents          Document?
+
+  // Attendance & Leaves
+  attendances        Attendance[]
+  leaves             Leave[]
+
+  // Teams & Management
+  internTeams        Team[]       @relation("TeamInterns")
+  managerTeams       Team[]       @relation("TeamManagers")
+  assignedGpmTeams   Team[]       @relation("GpmDirect")
+
+  // Tasks & Tickets
+  tasksAssigned      Task[]       @relation("TasksCreatedBy")
+  ticketsCreated     Ticket[]     @relation("UserTickets")
+  ticketsResolved    Ticket[]     @relation("ResolvedTickets")
+
+  // Chat Messages
+  messagesSent       Message[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Document {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  aadharUrl          String?
+  pancardUrl         String?
+  sscMarksheetUrl    String?
+  hscMarksheetUrl    String?
+  verificationStatus Boolean  @default(false)
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,23 @@
+enum TaskStatus {
+  PENDING
+  TODO
+  DONE
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  attachments String[]
+  assignedBy  String
+  batchId     String
+  teamId      String
+  status      TaskStatus @default(PENDING)
+
+  creator     User       @relation("TasksCreatedBy", fields: [assignedBy], references: [id])
+  batch       Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  team        Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, teamId])
+}

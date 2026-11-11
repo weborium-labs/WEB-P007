@@ -1,0 +1,26 @@
+model Conversation {
+  id        String    @id @default(uuid())
+  batchId   String?
+  teamId    String?
+
+  batch     Batch?    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  team      Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([batchId, teamId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  text           String
+  attachments    String[]
+  key            String       // E2EE encrypted key/nonce reference
+  conversationId String
+  senderId       String
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}

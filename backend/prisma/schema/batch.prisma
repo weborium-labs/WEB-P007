@@ -1,0 +1,28 @@
+model Batch {
+  id            String         @id @default(uuid())
+  name          String
+  startDate     DateTime
+  endDate       DateTime
+
+  hr            User[]         @relation("BatchHRs")
+  interns       User[]         @relation("BatchInterns")
+  teams         Team[]
+  tasks         Task[]
+  conversations Conversation[]
+}
+
+model Team {
+  id            String         @id @default(uuid())
+  name          String
+  batchId       String
+  gpmId         String?
+
+  batch         Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  gpm           User?          @relation("GpmDirect", fields: [gpmId], references: [id], onDelete: SetNull)
+  groupManagers User[]         @relation("TeamManagers")
+  interns       User[]         @relation("TeamInterns")
+  tasks         Task[]
+  conversations Conversation[]
+
+  @@index([batchId])
+}
