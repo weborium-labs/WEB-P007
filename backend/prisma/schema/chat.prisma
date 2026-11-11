@@ -1,7 +1,7 @@
 model Conversation {
   id        String    @id @default(uuid())
-  batchId   String?
-  teamId    String?
+  batchId   String?   @unique // Enforces exactly one channel per batch
+  teamId    String?   @unique // Enforces exactly one channel per team
 
   batch     Batch?    @relation(fields: [batchId], references: [id], onDelete: Cascade)
   team      Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -17,6 +17,11 @@ model Message {
   key            String       // E2EE encrypted key/nonce reference
   conversationId String
   senderId       String
+  
+  // CHAT-07: Soft-delete and moderation audit
+  deletedAt      DateTime?
+  deletedBy      String?      // User ID of sender or Admin/GPM moderator
+  
   createdAt      DateTime     @default(now())
 
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
