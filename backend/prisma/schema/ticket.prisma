@@ -1,0 +1,20 @@
+enum TicketStatus {
+  RESOLVED
+  REJECT
+  SCRUTINY
+}
+
+model Ticket {
+  id          String       @id @default(uuid())
+  userId      String
+  title       String
+  content     String
+  attachments String[]
+  status      TicketStatus @default(SCRUTINY)
+  resolvedBy  String?
+
+  user        User         @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  resolver    User?        @relation("ResolvedTickets", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+}

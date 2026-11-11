@@ -1,0 +1,41 @@
+enum AttendanceStatus {
+  ABSENT
+  PRESENT
+  LEAVE
+}
+
+enum LeaveType {
+  FULL
+  HALF_LEAVE
+}
+
+enum LeaveStatus {
+  REJECT
+  APPROVED
+  SCRUTINY
+}
+
+model Attendance {
+  id        String           @id @default(uuid())
+  userId    String
+  date      DateTime         @db.Date
+  status    AttendanceStatus @default(ABSENT)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model Leave {
+  id        String      @id @default(uuid())
+  userId    String
+  startDate DateTime    @db.Date
+  endDate   DateTime    @db.Date
+  leaveType LeaveType   @default(FULL)
+  status    LeaveStatus @default(SCRUTINY)
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
