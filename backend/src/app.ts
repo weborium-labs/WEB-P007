@@ -1,12 +1,17 @@
-import express, { type Express, type ErrorRequestHandler } from "express";
+import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-
-import healthRoutes from "./routes/health.routes.js";
-import { env } from "./config/env.js";
+import passport from "./config/passport.js";
+import v1Router from "./routes/v1.routes.js";
+import { requestContextMiddleware } from "./middlewares/request-context.middleware.js";
+import { errorHandler } from "./middlewares/error-handler.middleware.js";
+import { ApiError } from "./utils/ApiError.js";
+import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app: Express = express();
+
+app.use(requestContextMiddleware);
 
 // Base domain configuration from env
 const ROOT_DOMAIN = process.env.ROOT_DOMAIN || "weborium.co.in";
@@ -34,10 +39,15 @@ app.use(
 
       try {
         const url = new URL(origin);
+
         // Allow any *.localhost for local multi-tenant testing
-        if (url.hostname.endsWith(".localhost") || url.hostname === "localhost") {
+        if (
+          url.hostname.endsWith(".localhost") ||
+          url.hostname === "localhost"
+        ) {
           return callback(null, true);
         }
+
         // Allow root domain and any *.weborium.co.in
         if (
           url.hostname === ROOT_DOMAIN ||
@@ -46,7 +56,7 @@ app.use(
           return callback(null, true);
         }
       } catch {
-        // invalid URL structure
+        // Invalid URL structure
       }
 
       return callback(new Error("Origin not allowed by CORS"));
@@ -60,42 +70,33 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
+app.use(passport.initialize());
+
 // Trust edge reverse proxy (Nginx / Cloudflare) to accurately read host & IP
 app.set("trust proxy", 1);
 
+// API v1 root
 app.get("/api/v1", (_req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "Welcome to WEB-P007 IMS API v1",
-    version: "1.0.0",
-    docs: "/api/v1/docs", // optional
-    status: "active",
-  });
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        version: "1.0.0",
+        docs: "/api/v1/docs",
+        status: "active",
+      },
+      "Welcome to WEB-P007 IMS API v1",
+    ),
+  );
 });
 
 // API routes
-app.use("/api/v1/health", healthRoutes);
+app.use("/api/v1", v1Router);
 
 // 404 handler
-app.use((_req, res) => {
-  return res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
+app.use((_req, _res, next) => {
+  next(new ApiError(404, "Route not found."));
 });
 
-// Central error handler
-const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-  const isProd = env.NODE_ENV === "production";
-  const statusCode = error.status || error.statusCode || 500;
-  const message = error instanceof Error ? error.message : "Internal server error";
-
-  console.error("[API Error]", error);
-
-  return res.status(statusCode).json({
-    success: false,
-    message: isProd && statusCode === 500 ? "Internal server error" : message,
-  });
-};
-
+// Centralized global error handler
 app.use(errorHandler);
