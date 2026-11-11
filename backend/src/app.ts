@@ -63,6 +63,16 @@ app.use(cookieParser());
 // Trust edge reverse proxy (Nginx / Cloudflare) to accurately read host & IP
 app.set("trust proxy", 1);
 
+app.get("/api/v1", (_req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "Welcome to WEB-P007 IMS API v1",
+    version: "1.0.0",
+    docs: "/api/v1/docs", // optional
+    status: "active",
+  });
+});
+
 // API routes
 app.use("/api/v1/health", healthRoutes);
 
