@@ -1,8 +1,8 @@
 model AuditLog {
   id         String   @id @default(uuid())
   actorId    String
-  action     String   // e.g. "UPDATE_SCORE", "OVERRIDE_ATTENDANCE"
-  entityType String   // "User", "Attendance", "Task"
+  action     String   // e.g. "UPDATE_SCORE", "OVERRIDE_ATTENDANCE", "KYC_REJECT"
+  entityType String   // "User", "Attendance", "Task", "Document"
   entityId   String
   oldValue   Json?
   newValue   Json?
