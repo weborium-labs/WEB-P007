@@ -11,6 +11,7 @@ import {
 import Button from "../component/Button";
 import LeftGradient from "../assets/left-gradient.png";
 import GoogleIcon from "../assets/GoogleIcon.svg";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 type UserRole = "Intern" | "Group Manager" | "HR";
 
@@ -27,6 +28,7 @@ export type SignupPayload = Omit<SignupValues, "confirmPassword">;
 export interface SignupPageProps {
     /** Called after local validation when the user chooses Continue with Email. */
     onSignup?: (payload: SignupPayload) => void | Promise<void>;
+
     /** Resolve this callback only after the server accepts the submitted OTP. */
     onVerifyOtp?: (payload: { email: string; otp: string }) => void | Promise<void>;
     onOtpVerified?: () => void;
@@ -34,6 +36,7 @@ export interface SignupPageProps {
     onGoogleSignIn?: () => void | Promise<void>;
     onNavigateToLogin?: () => void;
     onOpenTerms?: () => void;
+
     /** Override these paths with the actual approved brand assets in your app. */
     noiseImageSrc?: string;
     glowImageSrc?: string;
@@ -43,9 +46,11 @@ export interface SignupPageProps {
 }
 
 type FieldErrors = Partial<Record<keyof SignupValues, string>>;
+
 type OtpStatus = "verified" | "network-error" | "otp-incorrect" | null;
 
 const ROLE_OPTIONS: UserRole[] = ["Intern", "Group Manager", "HR"];
+
 const INITIAL_VALUES: SignupValues = {
     email: "",
     fullName: "",
@@ -61,6 +66,7 @@ function isValidEmail(email: string): boolean {
 function getErrorDetails(error: unknown): { code?: string; message: string } {
     if (error && typeof error === "object") {
         const candidate = error as { code?: unknown; message?: unknown };
+
         return {
             code: typeof candidate.code === "string" ? candidate.code : undefined,
             message:
@@ -69,12 +75,12 @@ function getErrorDetails(error: unknown): { code?: string; message: string } {
                     : "Something went wrong. Please try again.",
         };
     }
+
     return { message: "Something went wrong. Please try again." };
 }
 
 function validateSignup(values: SignupValues): FieldErrors {
     const errors: FieldErrors = {};
-
     if (!isValidEmail(values.email)) {
         errors.email = "Enter a valid email address.";
     }
@@ -187,6 +193,8 @@ export function AuthVisualPanel({
 
     return (
         <aside
+            data-aos={isSignup ? "fade-right" : "fade-left"}
+            data-aos-duration="900"
             aria-hidden="true"
             className={[
                 "relative isolate h-[288px] shrink-0 overflow-hidden bg-[#020407] text-white",
@@ -205,7 +213,6 @@ export function AuthVisualPanel({
                 className="hidden pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-screen"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/20" />
-
             <p
                 className={[
                     "absolute left-5 right-5 top-[94px] z-10 flex flex-col items-center text-center",
@@ -225,7 +232,6 @@ export function AuthVisualPanel({
                     </>
                 )}
             </p>
-
             <div className="sm:hidden absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap sm:bottom-6 lg:bottom-7">
                 <span className="font-mono text-[10px] font-medium leading-5 tracking-[0.02em] text-white sm:text-[11px]">
                     POWERED BY
@@ -299,12 +305,14 @@ function RoleSelect({
     error?: string;
 }) {
     const listboxId = useId();
+
     const rootRef = useRef<HTMLDivElement>(null);
+
     const [isOpen, setIsOpen] = useState(false);
+
     const [activeIndex, setActiveIndex] = useState(() =>
         Math.max(0, ROLE_OPTIONS.indexOf(value as UserRole)),
     );
-
     useEffect(() => {
         if (!isOpen) return;
 
@@ -313,8 +321,8 @@ function RoleSelect({
                 setIsOpen(false);
             }
         };
-
         document.addEventListener("pointerdown", handleOutsidePointer);
+
         return () => document.removeEventListener("pointerdown", handleOutsidePointer);
     }, [isOpen]);
 
@@ -366,11 +374,10 @@ function RoleSelect({
                 ].join(" ")}
             >
                 <span>{value || "Select role"}</span>
-                <svg className={[isOpen ? 'rotate-180' : ''].join("")} xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <svg className={[isOpen ? 'rotate-180' : '', "hover:cursor-pointer"].join("")} xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none">
                     <path d="M1 1L5 5L9 1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#101828" />
                 </svg>
             </button>
-
             {isOpen ? (
                 <div
                     id={listboxId}
@@ -380,6 +387,7 @@ function RoleSelect({
                 >
                     {ROLE_OPTIONS.map((role, index) => {
                         const selected = role === value;
+
                         const active = index === activeIndex;
 
                         return (
@@ -403,7 +411,6 @@ function RoleSelect({
                     })}
                 </div>
             ) : null}
-
             {error ? <p className="mt-1.5 text-left text-xs text-[#C33F45]">{error}</p> : null}
         </div>
     );
@@ -478,7 +485,6 @@ function OtpDialog({
                 >
                     We’ve sent a code to <span className="font-mono text-[#30394B]">{email}</span>
                 </p>
-
                 <div className="mt-6 flex items-center justify-center gap-3">
                     {digits.map((digit, index) => (
                         <input
@@ -490,7 +496,7 @@ function OtpDialog({
                             aria-label={`Verification code digit ${index + 1}`}
                             autoComplete={index === 0 ? "one-time-code" : "off"}
                             inputMode="numeric"
-                            pattern="[0-9]*"
+                            pattern="[0-9]\"
                             maxLength={1}
                             value={digit}
                             disabled={busy || status === "verified"}
@@ -501,7 +507,6 @@ function OtpDialog({
                         />
                     ))}
                 </div>
-
                 <div className="mt-5 flex min-h-5 items-center justify-center gap-2" aria-live="polite">
                     {busy ? (
                         <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#747D8B] border-r-transparent" />
@@ -516,7 +521,6 @@ function OtpDialog({
                         <p className="text-center text-[12px] text-[#C33F45]">{noiseMessage}</p>
                     ) : null}
                 </div>
-
                 {status && status !== "verified" ? (
                     <button
                         type="button"
@@ -545,19 +549,34 @@ export default function Signup({
     googleLogoSrc = GoogleIcon,
     className = "",
 }: SignupPageProps) {
+    useDocumentTitle('Sign Up')
+
     const [values, setValues] = useState<SignupValues>(INITIAL_VALUES);
+
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
     const [formError, setFormError] = useState("");
+
     const [isSubmitting, setIsSubmitting] = useState(false);
+
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
     const [isOtpOpen, setIsOtpOpen] = useState(false);
+
     const [otpDigits, setOtpDigits] = useState(["", "", "", ""]);
+
     const [otpStatus, setOtpStatus] = useState<OtpStatus>(null);
+
     const [otpMessage, setOtpMessage] = useState("");
+
     const [isOtpBusy, setIsOtpBusy] = useState(false);
+
     const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
     const verificationInFlight = useRef(false);
+
     const signupRequestInFlight = useRef(false);
+
     const googleRequestInFlight = useRef(false);
 
     const updateValue = useCallback(
@@ -576,18 +595,17 @@ export default function Signup({
                 setOtpMessage("Connect the onVerifyOtp handler to complete verification.");
                 return;
             }
-
             verificationInFlight.current = true;
             setIsOtpBusy(true);
             setOtpStatus(null);
             setOtpMessage("");
-
             try {
                 await onVerifyOtp({ email: values.email.trim(), otp: code });
                 setOtpStatus("verified");
                 onOtpVerified?.();
             } catch (error) {
                 const details = getErrorDetails(error);
+
                 const invalidOtp =
                     details.code === "OTP_INVALID" || /incorrect|invalid otp/i.test(details.message);
                 setOtpStatus(invalidOtp ? "otp-incorrect" : "network-error");
@@ -601,16 +619,15 @@ export default function Signup({
 
     const handleOtpDigitChange = (index: number, rawValue: string) => {
         const digit = rawValue.replace(/\D/g, "").slice(-1);
+
         const nextDigits = [...otpDigits];
         nextDigits[index] = digit;
         setOtpDigits(nextDigits);
         setOtpStatus(null);
         setOtpMessage("");
-
         if (digit && index < nextDigits.length - 1) {
             otpInputRefs.current[index + 1]?.focus();
         }
-
         if (nextDigits.every(Boolean)) {
             void verifyOtp(nextDigits.join(""));
         }
@@ -637,6 +654,7 @@ export default function Signup({
         const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 4);
         if (!pasted) return;
         event.preventDefault();
+
         const nextDigits = ["", "", "", ""];
         pasted.split("").forEach((digit, index) => {
             nextDigits[index] = digit;
@@ -651,16 +669,15 @@ export default function Signup({
     const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setFormError("");
+
         const errors = validateSignup(values);
         setFieldErrors(errors);
         if (Object.keys(errors).length > 0) return;
-
         if (signupRequestInFlight.current) return;
         if (!onSignup) {
             setFormError("Signup is not connected yet. Pass an onSignup handler from your API layer.");
             return;
         }
-
         signupRequestInFlight.current = true;
         setIsSubmitting(true);
         try {
@@ -707,7 +724,6 @@ export default function Signup({
             setOtpMessage("Connect the onResendOtp handler to resend a verification code.");
             return;
         }
-
         verificationInFlight.current = true;
         setIsOtpBusy(true);
         setOtpMessage("");
@@ -735,26 +751,39 @@ export default function Signup({
             ].join(" ")}
         >
             <AuthPageBackdrop noiseImageSrc={noiseImageSrc} glowImageSrc={glowImageSrc} />
-            <div className="relative z-10 mx-auto flex min-h-[100svh] flex-col p-0 lg:grid lg:grid-cols-[40%_60%] lg:gap-0 lg:p-2">
+            <div className="relative z-10 mx-auto flex min-h-[100svh] flex-col p-0 lg:grid lg:grid-cols-[40%\_60%] lg:gap-0 lg:p-2">
                 <AuthVisualPanel
                     mode="signup"
                     noiseImageSrc={noiseImageSrc}
                     glowImageSrc={glowImageSrc}
                     weboriumLogoSrc={weboriumLogoSrc}
                 />
-
                 <main className="relative z-10 -mt-2 mx-2 mb-2 flex min-h-[calc(100svh-288px)] flex-1 flex-col items-center justify-start rounded-2xl bg-[#F7F8FA] px-6 pb-10 pt-7 sm:min-h-[calc(100svh-256px)] sm:px-10 sm:pt-12 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:my-0 lg:mt-0 lg:min-h-0 lg:justify-center lg:rounded-none lg:px-8 lg:py-10">
                     <div className="w-full max-w-[540px]">
                         <header className="text-center">
-                            <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]">
+                            <h1
+                                data-aos="fade-up"
+                                data-aos-delay="150"
+                                className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]"
+                            >
                                 Create your account
                             </h1>
-                            <p className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]">
+                            <p
+                                data-aos="fade-up"
+                                data-aos-delay="250"
+                                className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]"
+                            >
                                 Join a smarter way to work.
                             </p>
                         </header>
-
-                        <form onSubmit={handleSignup} noValidate className="mt-8 sm:mt-10 lg:mt-12">
+                        <form
+                            onSubmit={handleSignup}
+                            noValidate
+                            data-aos="fade-up"
+                            data-aos-delay="300"
+                            data-aos-duration="700"
+                            className="mt-8 sm:mt-10 lg:mt-12"
+                        >
                             <div className="mx-auto w-full max-w-[440px] space-y-4">
                                 <FormField
                                     id="signup-email"
@@ -798,14 +827,16 @@ export default function Signup({
                                     error={fieldErrors.role}
                                 />
                             </div>
-
                             {formError ? (
                                 <p role="alert" className="mx-auto max-w-[440px] text-left text-[13px] text-[#C33F45]">
                                     {formError}
                                 </p>
                             ) : null}
-
-                            <div className="mx-auto mt-8 flex w-full max-w-[538px] flex-col items-stretch gap-2.5 sm:mt-10 sm:flex-row sm:items-center sm:gap-4 lg:mt-12">
+                            <div
+                                data-aos="fade-up"
+                                data-aos-delay="400"
+                                className="mx-auto mt-8 flex w-full max-w-[538px] flex-col items-stretch gap-2.5 sm:mt-10 sm:flex-row sm:items-center sm:gap-4 lg:mt-12"
+                            >
                                 <Button
                                     type="submit"
                                     fullWidth
@@ -815,7 +846,7 @@ export default function Signup({
                                     endIcon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                                         <path d="M17 17V7H7M17 7L7 17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="white" />
                                     </svg>}
-                                    className="sm:flex-1"
+                                    className="sm:flex-1 hover:cursor-pointer"
                                 >
                                     Continue with Email
                                 </Button>
@@ -837,13 +868,16 @@ export default function Signup({
                                             className="h-6 w-6 object-contain"
                                         />
                                     }
-                                    className="sm:flex-1"
+                                    className="sm:flex-1 hover:cursor-pointer"
                                 >
                                     Continue with Google
                                 </Button>
                             </div>
-
-                            <div className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]">
+                            <div
+                                data-aos="fade-up"
+                                data-aos-delay="500"
+                                className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]"
+                            >
                                 <p>
                                     By signing in you accept our{" "}
                                     <button
@@ -852,9 +886,9 @@ export default function Signup({
                                             if (onOpenTerms) onOpenTerms();
                                             else setFormError("Connect onOpenTerms to open the terms page.");
                                         }}
-                                        className="font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
+                                        className="hover:cursor-pointer font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
                                     >
-                                        Terms &amp; Services
+                                        Terms & Services
                                     </button>
                                 </p>
                                 <p className="mt-3">
@@ -865,7 +899,7 @@ export default function Signup({
                                             if (onNavigateToLogin) onNavigateToLogin();
                                             else setFormError("Connect onNavigateToLogin to open the login page.");
                                         }}
-                                        className="font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
+                                        className="hover:cursor-pointer font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
                                     >
                                         Log in
                                     </button>
@@ -875,7 +909,6 @@ export default function Signup({
                     </div>
                 </main>
             </div>
-
             {isOtpOpen ? (
                 <OtpDialog
                     email={values.email.trim()}

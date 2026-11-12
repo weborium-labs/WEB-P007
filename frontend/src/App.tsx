@@ -9,6 +9,9 @@ import {
 
 import SignupPage from "./page/SignupPage";
 import LoginPage from "./page/LoginPage";
+import { useEffect } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 /**
  * Signup route wrapper.
@@ -64,6 +67,13 @@ function TermsAndServicesRoute() {
 }
 
 export default function App() {
+
+  useEffect(() => {
+    AOS.init({
+      once: true,
+    })
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>

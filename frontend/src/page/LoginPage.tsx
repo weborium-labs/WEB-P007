@@ -3,6 +3,7 @@ import Button from "../component/Button";
 import LeftGradient from "../assets/left-gradient.png";
 import GoogleIcon from "../assets/GoogleIcon.svg";
 import { AuthPageBackdrop, AuthVisualPanel } from "../page/SignupPage";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 type LoginPayload = {
     fullName: string;
@@ -91,22 +92,18 @@ function ForgotPasswordDialog({
     const [success, setSuccess] = useState(false);
     const titleId = useId();
     const emailRef = useRef<HTMLInputElement>(null);
-
     useEffect(() => {
         emailRef.current?.focus();
-
         const handleEscape = (event: KeyboardEvent) => {
             if (event.key === "Escape") onClose();
         };
         document.addEventListener("keydown", handleEscape);
         return () => document.removeEventListener("keydown", handleEscape);
     }, [onClose]);
-
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError("");
         setSuccess(false);
-
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
             setError("Enter a valid email address.");
             return;
@@ -115,7 +112,6 @@ function ForgotPasswordDialog({
             setError("Password reset is not connected. Pass an onRequestPasswordResetOtp handler.");
             return;
         }
-
         setIsSending(true);
         try {
             await onRequestOtp(email.trim());
@@ -126,7 +122,6 @@ function ForgotPasswordDialog({
             setIsSending(false);
         }
     };
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/15 px-4 py-6">
             <section
@@ -144,7 +139,6 @@ function ForgotPasswordDialog({
                 >
                     ×
                 </button>
-
                 <h2
                     id={titleId}
                     className="text-center text-[20px] font-semibold leading-6 tracking-[-0.02em] text-[#141B2A]"
@@ -154,7 +148,6 @@ function ForgotPasswordDialog({
                 <p className="mt-1 text-center text-[13px] leading-5 text-[#536078]">
                     A code will be sent to your email address
                 </p>
-
                 <form onSubmit={handleSubmit} className="mt-6">
                     <label htmlFor="reset-email" className="sr-only">
                         Enter email address
@@ -177,7 +170,6 @@ function ForgotPasswordDialog({
                             error ? "border-[#DC5555]" : "border-[#E8EBF0]",
                         ].join(" ")}
                     />
-
                     <Button
                         type="submit"
                         fullWidth
@@ -188,7 +180,6 @@ function ForgotPasswordDialog({
                     >
                         Send OTP
                     </Button>
-
                     {error ? (
                         <p role="alert" className="mt-3 text-center text-[12px] leading-4 text-[#C33F45]">
                             {error}
@@ -222,6 +213,7 @@ export default function LoginPage({
     googleLogoSrc = GoogleIcon,
     className = "",
 }: LoginPageProps) {
+    useDocumentTitle('Login')
     const [fullName, setFullName] = useState("");
     const [password, setPassword] = useState("");
     const [fieldErrors, setFieldErrors] = useState<{ fullName?: string; password?: string }>({});
@@ -232,23 +224,19 @@ export default function LoginPage({
     const closeForgotPassword = useCallback(() => setIsForgotPasswordOpen(false), []);
     const loginRequestInFlight = useRef(false);
     const googleRequestInFlight = useRef(false);
-
     const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setFormError("");
-
         const errors: { fullName?: string; password?: string } = {};
         if (fullName.trim().length < 2) errors.fullName = "Enter your full name.";
         if (!password) errors.password = "Enter your password.";
         setFieldErrors(errors);
         if (Object.keys(errors).length > 0) return;
-
         if (loginRequestInFlight.current) return;
         if (!onLogin) {
             setFormError("Login is not connected yet. Pass an onLogin handler from your API layer.");
             return;
         }
-
         loginRequestInFlight.current = true;
         setIsSubmitting(true);
         try {
@@ -260,7 +248,6 @@ export default function LoginPage({
             setIsSubmitting(false);
         }
     };
-
     const handleGoogleSignIn = async () => {
         setFormError("");
         if (googleRequestInFlight.current) return;
@@ -279,7 +266,6 @@ export default function LoginPage({
             setIsGoogleLoading(false);
         }
     };
-
     return (
         <div
             className={[
@@ -296,19 +282,29 @@ export default function LoginPage({
                     glowImageSrc={glowImageSrc}
                     weboriumLogoSrc={weboriumLogoSrc}
                 />
-
                 <main className="relative z-10 -mt-2 mx-2 mb-2 flex min-h-[calc(100svh-288px)] flex-1 flex-col items-center justify-start rounded-2xl bg-[#F7F8FA] px-6 pb-10 pt-7 sm:min-h-[calc(100svh-256px)] sm:px-10 sm:pt-12 lg:order-1 lg:col-start-1 lg:row-start-1 lg:mx-0 lg:my-0 lg:mt-0 lg:min-h-0 lg:justify-center lg:rounded-none lg:px-8 lg:py-10">
                     <div className="w-full max-w-[540px]">
                         <header className="text-center">
-                            <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]">
+                            <h1
+                                data-aos="fade-up"
+                                data-aos-delay="150"
+                                className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]">
                                 Login to your account
                             </h1>
-                            <p className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]">
+                            <p
+                                data-aos="fade-up"
+                                data-aos-delay="250"
+                                className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]">
                                 Pick up where you left off.
                             </p>
                         </header>
-
-                        <form onSubmit={handleLogin} noValidate className="mt-7 sm:mt-9 lg:mt-12">
+                        <form
+                                onSubmit={handleLogin}
+                                noValidate
+                                data-aos="fade-up"
+                                data-aos-delay="300"
+                                data-aos-duration="700"
+                                className="mt-7 sm:mt-9 lg:mt-12">
                             <div className="mx-auto w-full max-w-[440px] space-y-4">
                                 <TextField
                                     id="login-full-name"
@@ -336,14 +332,15 @@ export default function LoginPage({
                                     error={fieldErrors.password}
                                 />
                             </div>
-
                             {formError ? (
                                 <p role="alert" className="mx-auto max-w-[440px] text-left text-[13px] text-[#C33F45]">
                                     {formError}
                                 </p>
                             ) : null}
-
-                            <div className="mx-auto mt-8 flex w-full max-w-[538px] flex-col items-stretch gap-2.5 sm:mt-10 sm:flex-row sm:items-center sm:gap-4 lg:mt-12">
+                            <div
+                                data-aos="fade-up"
+                                data-aos-delay="400"
+                                className="mx-auto mt-8 flex w-full max-w-[538px] flex-col items-stretch gap-2.5 sm:mt-10 sm:flex-row sm:items-center sm:gap-4 lg:mt-12">
                                 <Button
                                     type="submit"
                                     fullWidth
@@ -353,7 +350,7 @@ export default function LoginPage({
                                     endIcon={<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
                                         <path d="M11 11V1H1M11 1L1 11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="white" />
                                     </svg>}
-                                    className="sm:flex-1"
+                                    className="sm:flex-1 hover:cursor-pointer"
                                 >
                                     Continue with Email
                                 </Button>
@@ -375,18 +372,20 @@ export default function LoginPage({
                                             className="h-6 w-6 object-contain"
                                         />
                                     }
-                                    className="sm:flex-1"
+                                    className="sm:flex-1 hover:cursor-pointer"
                                 >
                                     Continue with Google
                                 </Button>
                             </div>
-
-                            <div className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]">
+                            <div
+                                data-aos="fade-up"
+                                data-aos-delay="500"
+                                className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]">
                                 <p>
                                     <button
                                         type="button"
                                         onClick={() => setIsForgotPasswordOpen(true)}
-                                        className="font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
+                                        className="hover:cursor-pointer font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
                                     >
                                         Forgot password?
                                     </button>
@@ -399,7 +398,7 @@ export default function LoginPage({
                                             if (onNavigateToSignup) onNavigateToSignup();
                                             else setFormError("Connect onNavigateToSignup to open the signup page.");
                                         }}
-                                        className="font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
+                                        className="hover:cursor-pointer font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
                                     >
                                         Sign up
                                     </button>
@@ -409,7 +408,6 @@ export default function LoginPage({
                     </div>
                 </main>
             </div>
-
             {isForgotPasswordOpen ? (
                 <ForgotPasswordDialog
                     onClose={closeForgotPassword}
