@@ -105,29 +105,22 @@ function validateSignup(values: SignupValues): FieldErrors {
  * textured gradient visible around and behind the form card, including while
  * the OTP dialog is open. On desktop the page returns to the split light layout.
  */
-export function AuthPageBackdrop({
-    noiseImageSrc,
-    glowImageSrc,
-}: {
-    noiseImageSrc: string;
-    glowImageSrc: string;
+const REGISTER_GRADIENT_URL = "https://i.ibb.co/6cmHPkyt/register-gradient.jpg";
+
+export function AuthPageBackdrop(_props: {
+    noiseImageSrc?: string;
+    glowImageSrc?: string;
 }) {
     return (
         <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 overflow-hidden lg:hidden"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#020407] lg:hidden"
         >
             <img
-                src={glowImageSrc}
+                src={REGISTER_GRADIENT_URL}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover object-center"
             />
-            <img
-                src={noiseImageSrc}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-screen"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/10 to-black/25" />
         </div>
     );
 }
@@ -193,8 +186,6 @@ export function AuthVisualPanel({
 
     return (
         <aside
-            data-aos={isSignup ? "fade-right" : "fade-left"}
-            data-aos-duration="900"
             aria-hidden="true"
             className={[
                 "relative isolate h-[288px] shrink-0 overflow-hidden bg-[#020407] text-white",
@@ -205,12 +196,12 @@ export function AuthVisualPanel({
             <img
                 src={glowImageSrc}
                 alt=""
-                className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center bg-no-repeat"
             />
             <img
                 src={noiseImageSrc}
                 alt=""
-                className="hidden pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-screen"
+                className="hidden pointer-events-none bg-no-repeat absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-screen"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/20" />
             <p
@@ -222,13 +213,13 @@ export function AuthVisualPanel({
             >
                 {isSignup ? (
                     <>
-                        <span className="hidden">IMS that helps you track</span>
-                        <span className="hidden font-normal italic">seamlessly.</span>
+                        {/* <span className="hidden">IMS that helps you track</span>
+                        <span className="hidden font-normal italic">seamlessly.</span> */}
                     </>
                 ) : (
                     <>
-                        <span className="hidden">Your workspace</span>
-                        <span className="hidden font-normal italic">awaits.</span>
+                        {/* <span className="hidden">Your workspace</span>
+                        <span className="hidden font-normal italic">awaits.</span> */}
                     </>
                 )}
             </p>
@@ -770,15 +761,11 @@ export default function Signup({
                     <div className="w-full max-w-[540px]">
                         <header className="text-center">
                             <h1
-                                data-aos="fade-up"
-                                data-aos-delay="150"
                                 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]"
                             >
                                 Create your account
                             </h1>
                             <p
-                                data-aos="fade-up"
-                                data-aos-delay="250"
                                 className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]"
                             >
                                 Join a smarter way to work.
@@ -787,9 +774,6 @@ export default function Signup({
                         <form
                             onSubmit={handleSignup}
                             noValidate
-                            data-aos="fade-up"
-                            data-aos-delay="300"
-                            data-aos-duration="700"
                             className="mt-8 sm:mt-10 lg:mt-12"
                         >
                             <div className="mx-auto w-full max-w-[440px] space-y-4">
@@ -841,8 +825,6 @@ export default function Signup({
                                 </p>
                             ) : null}
                             <div
-                                data-aos="fade-up"
-                                data-aos-delay="400"
                                 className="mx-auto mt-8 flex w-full max-w-[538px] flex-col items-stretch gap-2.5 sm:mt-10 sm:flex-row sm:items-center sm:gap-4 lg:mt-12"
                             >
                                 <Button
@@ -882,8 +864,6 @@ export default function Signup({
                                 </Button>
                             </div>
                             <div
-                                data-aos="fade-up"
-                                data-aos-delay="500"
                                 className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]"
                             >
                                 <p>
