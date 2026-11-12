@@ -32,6 +32,7 @@ model User {
   activeStatus       Boolean            @default(true)
   score              Float              @default(0.0)
   verificationStatus VerificationStatus @default(NOT_SUBMITTED) // Enum instead of boolean
+  isEmailVerified    Boolean            @default(false)
   
   // Activity tracking for BullMQ auto-deactivation workers (ACT-05)
   lastLoginAt        DateTime?
@@ -40,6 +41,10 @@ model User {
   
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+
+  otpHash            String?
+  otpExpiresAt       DateTime?
+  otpAttempts        Int                @default(0)
 
   // Batch Relations
   batchId            String?

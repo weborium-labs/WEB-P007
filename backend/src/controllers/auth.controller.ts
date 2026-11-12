@@ -1,16 +1,30 @@
-
 import type { RequestHandler, Response } from "express";
 import type { Profile } from "passport-google-oauth20";
 import ms from "ms";
 
 import { env } from "../config/env.js";
+import { getValidated } from "../middlewares/validate.middleware.js";
 import {
     createAuthTokens,
     findOrCreateGoogleUser,
+    forgotPassword as forgotPasswordService,
+    login as loginService,
+    resendOtp as resendOtpService,
+    resetPassword as resetPasswordService,
+    signup as signupService,
+    verifyOtp as verifyOtpService,
     verifyRefreshToken,
+    verifyResetOtp as verifyResetOtpService,
 } from "../services/auth.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import type {
+    LoginInput,
+    ResendOtpInput,
+    SignupInput,
+    VerifyOtpInput,
+} from "../validators/auth.validator.js";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 const REFRESH_COOKIE_PATH = "/api/v1/auth";
@@ -62,7 +76,7 @@ export const googleCallback: RequestHandler = async (
         const requestedRole = req.query.state;
 
         if (!requestedRole) {
-            return res.status(400).json(new ApiResponse(400, [], 'User Role is required'));
+            return res.status(400).json(new ApiResponse(400, [], "User Role is required"));
         }
 
         const user = await findOrCreateGoogleUser(
@@ -149,3 +163,124 @@ export const logout: RequestHandler = (_req, res) => {
         ),
     );
 };
+
+// email login ///
+export const signup: RequestHandler = asyncHandler(async (req, res) => {
+    const input = getValidated<SignupInput>(req, "body");
+    const data = await signupService(input);
+
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(
+                201,
+                data,
+                "Registration successful. Please verify the OTP sent to your email.",
+            ),
+        );
+});
+
+export const verifyOtp: RequestHandler = asyncHandler(async (req, res) => {
+    const input = getValidated<VerifyOtpInput>(req, "body");
+    const user = await verifyOtpService(input);
+
+    const { accessToken, refreshToken } = await createAuthTokens(user);
+
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
+
+    const safeUser = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        photoUrl: user.photoUrl,
+        batchId: user.batchId,
+        isEmailVerified: user.isEmailVerified,
+        verificationStatus: user.verificationStatus,
+    };
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { user: safeUser, accessToken },
+                "Email verified and logged in successfully.",
+            ),
+        );
+});
+
+export const resendOtp: RequestHandler = asyncHandler(async (req, res) => {
+    const input = getValidated<ResendOtpInput>(req, "body");
+    const data = await resendOtpService(input);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, data, "A new OTP has been sent to your email."),
+        );
+});
+
+export const login: RequestHandler = asyncHandler(async (req, res) => {
+    const input = getValidated<LoginInput>(req, "body");
+    const user = await loginService(input);
+
+    const { accessToken, refreshToken } = await createAuthTokens(user);
+
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
+
+    const safeUser = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        photoUrl: user.photoUrl,
+        batchId: user.batchId,
+        isEmailVerified: user.isEmailVerified,
+        verificationStatus: user.verificationStatus,
+    };
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { user: safeUser, accessToken },
+                "Logged in successfully.",
+            ),
+        );
+});
+
+// In auth.controller.ts
+export const forgotPassword: RequestHandler = asyncHandler(async (req, res) => {
+    const input = getValidated<ForgotPasswordInput>(req, "body");
+    const data = await forgotPasswordService(input);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                data,
+                "If an account exists, a password reset OTP has been sent.",
+            ),
+        );
+});
+
+export const verifyResetOtp: RequestHandler = asyncHandler(async (req, res) => {
+    const input = getValidated<VerifyResetOtpInput>(req, "body");
+    const data = await verifyResetOtp(input);
+    return res
+        .status(200)
+        .json(new ApiResponse(200, data, "OTP verified successfully."));
+});
+
+export const resetPassword: RequestHandler = asyncHandler(async (req, res) => {
+    const input = getValidated<ResetPasswordInput>(req, "body");
+    const data = await resetPasswordService(input);
+    return res
+        .status(200)
+        .json(new ApiResponse(200, data, "Password reset successfully. Please log in."));
+});
+
+
