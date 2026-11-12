@@ -274,7 +274,7 @@ export default function LoginPage({
                 className,
             ].join(" ")}
         >
-            <AuthPageBackdrop noiseImageSrc={noiseImageSrc} glowImageSrc={glowImageSrc} />
+            <AuthPageBackdrop noiseImageSrc={noiseImageSrc} glowImageSrc={glowImageSrc} mode="login" />
             <div className="relative z-10 mx-auto flex min-h-[100svh] flex-col p-0 lg:grid lg:grid-cols-[60%_40%] lg:gap-0 lg:p-2">
                 <AuthVisualPanel
                     mode="login"
@@ -295,9 +295,9 @@ export default function LoginPage({
                             </p>
                         </header>
                         <form
-                                onSubmit={handleLogin}
-                                noValidate
-                                className="mt-7 sm:mt-9 lg:mt-12">
+                            onSubmit={handleLogin}
+                            noValidate
+                            className="mt-7 sm:mt-9 lg:mt-12">
                             <div className="mx-auto w-full max-w-[440px] space-y-4">
                                 <TextField
                                     id="login-full-name"
@@ -339,7 +339,7 @@ export default function LoginPage({
                                     loadingLabel="Signing in"
                                     disabled={isGoogleLoading}
                                     endIcon={<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                        <path d="M11 11V1H1M11 1L1 11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="white" />
+                                        <path d="M11 11V1H1M11 1L1 11" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" stroke="white" />
                                     </svg>}
                                     className="sm:flex-1 hover:cursor-pointer"
                                 >

@@ -15,6 +15,8 @@ import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 type UserRole = "Intern" | "Group Manager" | "HR";
 
+type AuthMode = "signup" | "login";
+
 type SignupValues = {
     email: string;
     fullName: string;
@@ -57,6 +59,17 @@ const INITIAL_VALUES: SignupValues = {
     password: "",
     confirmPassword: "",
     role: "",
+};
+
+/** Text-free gradient artwork, one per auth page. Copy is rendered as HTML (see AUTH_HEADLINES). */
+const AUTH_GRADIENTS: Record<AuthMode, string> = {
+    signup: "https://i.ibb.co/6cmHPkyt/register-gradient.jpg",
+    login: "https://i.ibb.co/KzGxT2Pj/login-gradient.jpg",
+};
+
+const AUTH_HEADLINES: Record<AuthMode, { primary: string; accent: string }> = {
+    signup: { primary: "IMS that helps you track", accent: "seamlessly." },
+    login: { primary: "Your workspace", accent: "awaits." },
 };
 
 function isValidEmail(email: string): boolean {
@@ -105,11 +118,13 @@ function validateSignup(values: SignupValues): FieldErrors {
  * textured gradient visible around and behind the form card, including while
  * the OTP dialog is open. On desktop the page returns to the split light layout.
  */
-const REGISTER_GRADIENT_URL = "https://i.ibb.co/6cmHPkyt/register-gradient.jpg";
 
-export function AuthPageBackdrop(_props: {
+export function AuthPageBackdrop({
+    mode = "signup",
+}: {
     noiseImageSrc?: string;
     glowImageSrc?: string;
+    mode?: AuthMode;
 }) {
     return (
         <div
@@ -117,7 +132,7 @@ export function AuthPageBackdrop(_props: {
             className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#020407] lg:hidden"
         >
             <img
-                src={REGISTER_GRADIENT_URL}
+                src={AUTH_GRADIENTS[mode]}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover object-center"
             />
@@ -171,15 +186,44 @@ function WeboriumBrandMark({ logoSrc }: { logoSrc?: string }) {
     );
 }
 
+/** Headline rendered as live text on top of the text-free gradient. */
+function AuthHeadline({ mode }: { mode: AuthMode }) {
+    const { primary, accent } = AUTH_HEADLINES[mode];
+
+    return (
+        <p
+            className={[
+                "absolute left-5 right-5 top-[94px] z-10 flex flex-col items-center text-center",
+                "text-[25px] font-semibold leading-[1.25] tracking-[-0.035em] text-white",
+                "sm:top-[66px] sm:text-[28px] lg:top-1/2 lg:-translate-y-1/2 lg:text-[32px] lg:leading-10",
+            ].join(" ")}
+        >
+            <span>{primary}</span>
+            <span className="font-normal italic">{accent}</span>
+        </p>
+    );
+}
+
+/** "POWERED BY Weborium Labs" lockup, shown on every breakpoint. */
+function PoweredBy({ logoSrc }: { logoSrc?: string }) {
+    return (
+        <div className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap sm:bottom-6 lg:bottom-7">
+            <span className="font-mono text-[10px] font-medium leading-5 tracking-[0.02em] text-white sm:text-[11px]">
+                POWERED BY
+            </span>
+            <WeboriumBrandMark logoSrc={logoSrc} />
+        </div>
+    );
+}
+
 export function AuthVisualPanel({
     mode,
     noiseImageSrc,
-    glowImageSrc,
     weboriumLogoSrc,
 }: {
-    mode: "signup" | "login";
+    mode: AuthMode;
     noiseImageSrc: string;
-    glowImageSrc: string;
+    glowImageSrc?: string;
     weboriumLogoSrc?: string;
 }) {
     const isSignup = mode === "signup";
@@ -194,7 +238,7 @@ export function AuthVisualPanel({
             ].join(" ")}
         >
             <img
-                src={glowImageSrc}
+                src={AUTH_GRADIENTS[mode]}
                 alt=""
                 className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center bg-no-repeat"
             />
@@ -204,31 +248,8 @@ export function AuthVisualPanel({
                 className="hidden pointer-events-none bg-no-repeat absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-screen"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/20" />
-            <p
-                className={[
-                    "absolute left-5 right-5 top-[94px] z-10 flex flex-col items-center text-center",
-                    "text-[25px] font-semibold leading-[1.25] tracking-[-0.035em] text-white",
-                    "sm:top-[66px] sm:text-[28px] lg:top-1/2 lg:-translate-y-1/2 lg:text-[32px] lg:leading-10",
-                ].join(" ")}
-            >
-                {isSignup ? (
-                    <>
-                        {/* <span className="hidden">IMS that helps you track</span>
-                        <span className="hidden font-normal italic">seamlessly.</span> */}
-                    </>
-                ) : (
-                    <>
-                        {/* <span className="hidden">Your workspace</span>
-                        <span className="hidden font-normal italic">awaits.</span> */}
-                    </>
-                )}
-            </p>
-            <div className="sm:hidden absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap sm:bottom-6 lg:bottom-7">
-                <span className="font-mono text-[10px] font-medium leading-5 tracking-[0.02em] text-white sm:text-[11px]">
-                    POWERED BY
-                </span>
-                <WeboriumBrandMark logoSrc={weboriumLogoSrc} />
-            </div>
+            <AuthHeadline mode={mode} />
+            <PoweredBy logoSrc={weboriumLogoSrc} />
         </aside>
     );
 }
@@ -366,7 +387,7 @@ function RoleSelect({
             >
                 <span>{value || "Select role"}</span>
                 <svg className={[isOpen ? 'rotate-180' : '', "hover:cursor-pointer"].join("")} xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none">
-                    <path d="M1 1L5 5L9 1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#101828" />
+                    <path d="M1 1L5 5L9 1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" stroke="#101828" />
                 </svg>
             </button>
             {isOpen ? (
@@ -487,7 +508,7 @@ function OtpDialog({
                             aria-label={`Verification code digit ${index + 1}`}
                             autoComplete={index === 0 ? "one-time-code" : "off"}
                             inputMode="numeric"
-                            pattern="[0-9]\"
+                            pattern="[0-9]"
                             maxLength={1}
                             value={digit}
                             disabled={busy || status === "verified"}
@@ -741,8 +762,8 @@ export default function Signup({
                 className,
             ].join(" ")}
         >
-            <AuthPageBackdrop noiseImageSrc={noiseImageSrc} glowImageSrc={glowImageSrc} />
-            <div className="relative z-10 mx-auto flex min-h-[100svh] flex-col p-0 lg:grid lg:grid-cols-[40%\_60%] lg:gap-0 lg:p-2">
+            <AuthPageBackdrop noiseImageSrc={noiseImageSrc} glowImageSrc={glowImageSrc} mode="signup" />
+            <div className="relative z-10 mx-auto flex min-h-[100svh] flex-col p-0 lg:grid lg:grid-cols-[40%_60%] lg:gap-0 lg:p-2">
                 <AuthVisualPanel
                     mode="signup"
                     noiseImageSrc={noiseImageSrc}
@@ -826,7 +847,7 @@ export default function Signup({
                                     loadingLabel="Please wait"
                                     disabled={isGoogleLoading}
                                     endIcon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                        <path d="M17 17V7H7M17 7L7 17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="white" />
+                                        <path d="M17 17V7H7M17 7L7 17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" stroke="white" />
                                     </svg>}
                                     className="sm:flex-1 hover:cursor-pointer"
                                 >
