@@ -1,12 +1,21 @@
 import { RequestHandler, Router } from "express";
 import passport from "../config/passport.js";
-
+import { validate } from "../middlewares/validate.middleware.js";
 import {
+    forgotPassword,
     googleCallback,
+    login,
     logout,
     refreshAccessToken,
+    resendOtp,
+    resetPassword,
+    signup,
+    verifyOtp,
+    verifyResetOtp,
 } from "../controllers/auth.controller.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+
+import { signupSchema ,verifyOtpSchema ,resendOtpSchema,loginSchema,forgotPasswordSchema,verifyResetOtpSchema,resetPasswordSchema } from "../validators/auth.validator.js";
 
 const router: Router = Router();
 
@@ -44,8 +53,14 @@ router.get(
     googleCallback
 );
 
+router.post("/signup", validate({ body: signupSchema }), signup);
+router.post("/verify-otp", validate({ body: verifyOtpSchema }), verifyOtp);
+router.post("/resend-otp", validate({ body: resendOtpSchema }), resendOtp);
+router.post("/login", validate({ body: loginSchema }), login);
 router.post("/refresh", refreshAccessToken);
-
 router.post("/logout", logout);
+router.post("/forgot-password", validate({ body: forgotPasswordSchema }), forgotPassword);
+router.post("/verify-reset-otp", validate({ body: verifyResetOtpSchema }), verifyResetOtp);
+router.post("/reset-password", validate({ body: resetPasswordSchema }), resetPassword);
 
 export default router;

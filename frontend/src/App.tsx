@@ -9,6 +9,7 @@ import {
 
 import SignupPage from "./page/SignupPage";
 import LoginPage from "./page/LoginPage";
+import DashBoard from "./page/DashBoard";
 import { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -86,6 +87,10 @@ export default function App() {
         {/* Authentication pages */}
         <Route path="/auth/signup" element={<SignupRoute />} />
         <Route path="/auth/login" element={<LoginRoute />} />
+        <Route
+          path="/dashboard"
+          element={<DashBoard />}
+        />
 
         {/* Public legal page */}
         <Route
