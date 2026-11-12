@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 import { z } from "zod";
 
@@ -14,10 +15,14 @@ const envSchema = z.object({
     .string()
     .default("http://localhost:5173,http://localhost:5174"),
 
-  // Google OAuth
+  // Google OAuth - Passport
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   GOOGLE_CALLBACK_URL: z.string().url(),
+
+  // Gmail API - Email Service
+  GOOGLE_REFRESH_TOKEN: z.string().trim().min(1),
+  GOOGLE_EMAIL: z.string().trim().email(),
 
   // Frontend
   FRONTEND_URL: z.string().url(),
