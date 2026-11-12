@@ -48,6 +48,7 @@ export const googleCallback: RequestHandler = async (
     next,
 ) => {
     try {
+        console.log("CALLBACK:", req.originalUrl);
         const profile = req.user as Profile | undefined;
 
         if (!profile) {
@@ -57,7 +58,17 @@ export const googleCallback: RequestHandler = async (
             );
         }
 
-        const user = await findOrCreateGoogleUser(profile);
+        // Read the role received by the callback
+        const requestedRole = req.query.state;
+
+        if (!requestedRole) {
+            return res.status(400).json(new ApiResponse(400, [], 'User Role is required'));
+        }
+
+        const user = await findOrCreateGoogleUser(
+            profile,
+            requestedRole,
+        );
 
         const { accessToken, refreshToken } =
             await createAuthTokens(user);

@@ -13,7 +13,7 @@ import LeftGradient from "../assets/left-gradient.png";
 import GoogleIcon from "../assets/GoogleIcon.svg";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
-type UserRole = "Intern" | "Group Manager" | "HR";
+type UserRole = "Intern" | "Group_manager" | "HR";
 
 type SignupValues = {
     email: string;
@@ -49,7 +49,7 @@ type FieldErrors = Partial<Record<keyof SignupValues, string>>;
 
 type OtpStatus = "verified" | "network-error" | "otp-incorrect" | null;
 
-const ROLE_OPTIONS: UserRole[] = ["Intern", "Group Manager", "HR"];
+const ROLE_OPTIONS: UserRole[] = ["Intern", "Group_manager", "HR"];
 
 const INITIAL_VALUES: SignupValues = {
     email: "",
@@ -540,7 +540,6 @@ export default function Signup({
     onVerifyOtp,
     onOtpVerified,
     onResendOtp,
-    onGoogleSignIn,
     onNavigateToLogin,
     onOpenTerms,
     noiseImageSrc = "/Noise.png",
@@ -701,15 +700,24 @@ export default function Signup({
 
     const handleGoogleSignIn = async () => {
         setFormError("");
-        if (googleRequestInFlight.current) return;
-        if (!onGoogleSignIn) {
-            setFormError("Google sign-in is not connected yet. Pass an onGoogleSignIn handler.");
+
+        // Validate role before initiating Google Sign In
+        if (!values.role) {
+            setFieldErrors((current) => ({
+                ...current,
+                role: "Select a role to continue.",
+            }));
             return;
         }
+
+        // Prevent duplicate requests
+        if (googleRequestInFlight.current) return;
+
         googleRequestInFlight.current = true;
         setIsGoogleLoading(true);
+
         try {
-            await onGoogleSignIn();
+            window.location.href = `${import.meta.env.VITE_GOOGLE_CALLBACK_URI}/?role=${values.role}`;
         } catch (error) {
             setFormError(getErrorDetails(error).message);
         } finally {

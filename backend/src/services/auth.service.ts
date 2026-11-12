@@ -68,8 +68,33 @@ const generateUsername = async (
     );
 };
 
+const GOOGLE_SIGNUP_ROLE_MAP = {
+    Intern: "INTERN",
+    Group_manager: "GPM",
+    HR: "HR",
+} as const;
+
+type GoogleSignupRole = keyof typeof GOOGLE_SIGNUP_ROLE_MAP;
+
+function getGoogleSignupRole(
+    role: unknown,
+): (typeof GOOGLE_SIGNUP_ROLE_MAP)[GoogleSignupRole] {
+    if (
+        typeof role !== "string" ||
+        !Object.prototype.hasOwnProperty.call(
+            GOOGLE_SIGNUP_ROLE_MAP,
+            role,
+        )
+    ) {
+        throw new ApiError(400, "Invalid or missing signup role.");
+    }
+
+    return GOOGLE_SIGNUP_ROLE_MAP[role as GoogleSignupRole];
+}
+
 export const findOrCreateGoogleUser = async (
     profile: Profile,
+    requestedRole: unknown,
 ): Promise<User> => {
     const googleId = profile.id;
     const email = profile.emails?.[0]?.value?.trim().toLowerCase();
@@ -126,6 +151,8 @@ export const findOrCreateGoogleUser = async (
         );
     }
 
+    const role = getGoogleSignupRole(requestedRole);
+
     const username = await generateUsername(displayName);
 
     try {
@@ -136,7 +163,7 @@ export const findOrCreateGoogleUser = async (
                 username,
                 photoUrl,
                 authType: AuthType.GOOGLE,
-                role: "INTERN",
+                role,
                 activeStatus: true,
                 lastLoginAt: new Date(),
                 lastActivityAt: new Date(),
