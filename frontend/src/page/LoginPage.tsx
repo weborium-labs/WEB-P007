@@ -286,14 +286,10 @@ export default function LoginPage({
                     <div className="w-full max-w-[540px]">
                         <header className="text-center">
                             <h1
-                                data-aos="fade-up"
-                                data-aos-delay="150"
                                 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]">
                                 Login to your account
                             </h1>
                             <p
-                                data-aos="fade-up"
-                                data-aos-delay="250"
                                 className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]">
                                 Pick up where you left off.
                             </p>
@@ -301,9 +297,6 @@ export default function LoginPage({
                         <form
                                 onSubmit={handleLogin}
                                 noValidate
-                                data-aos="fade-up"
-                                data-aos-delay="300"
-                                data-aos-duration="700"
                                 className="mt-7 sm:mt-9 lg:mt-12">
                             <div className="mx-auto w-full max-w-[440px] space-y-4">
                                 <TextField
@@ -338,8 +331,6 @@ export default function LoginPage({
                                 </p>
                             ) : null}
                             <div
-                                data-aos="fade-up"
-                                data-aos-delay="400"
                                 className="mx-auto mt-8 flex w-full max-w-[538px] flex-col items-stretch gap-2.5 sm:mt-10 sm:flex-row sm:items-center sm:gap-4 lg:mt-12">
                                 <Button
                                     type="submit"
@@ -378,8 +369,6 @@ export default function LoginPage({
                                 </Button>
                             </div>
                             <div
-                                data-aos="fade-up"
-                                data-aos-delay="500"
                                 className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]">
                                 <p>
                                     <button
