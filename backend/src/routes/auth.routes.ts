@@ -30,7 +30,7 @@ router.get(
         session: false,
         failureRedirect: "/api/v1/auth/failure",
     }),
-    googleCallback,
+    googleCallback
 );
 
 router.post("/refresh", refreshAccessToken);
