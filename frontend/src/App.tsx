@@ -13,7 +13,6 @@ import DashBoard from "./page/DashBoard";
 import { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import { Divide, Layers3 } from "lucide-react";
 import LandingPage from "./page/LandingPage";
 
 /**
@@ -33,11 +32,7 @@ function SignupRoute() {
 
 /** Login route wrapper. */
 function LoginRoute() {
-  const navigate = useNavigate();
-
-  return (
-    <LoginPage onNavigateToSignup={() => navigate("/auth/signup")} />
-  );
+  return <LoginPage />;
 }
 
 /**
