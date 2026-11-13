@@ -53,14 +53,15 @@ router.get(
     googleCallback
 );
 
-router.post("/signup", validate({ body: signupSchema }), signup);
-router.post("/verify-otp", validate({ body: verifyOtpSchema }), verifyOtp);
-router.post("/resend-otp", validate({ body: resendOtpSchema }), resendOtp);
-router.post("/login", validate({ body: loginSchema }), login);
+router.post("/signup", validate(signupSchema), signup);
+router.post("/verify-otp", validate(verifyOtpSchema), verifyOtp);
+router.post("/resend-otp", validate(resendOtpSchema), resendOtp);
+router.post("/login", validate(loginSchema), login);
+
+router.post("/forgot-password", validate(forgotPasswordSchema), forgotPassword);
+router.post("/verify-reset-otp", validate(verifyResetOtpSchema), verifyResetOtp);
+router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
 router.post("/refresh", refreshAccessToken);
 router.post("/logout", logout);
-router.post("/forgot-password", validate({ body: forgotPasswordSchema }), forgotPassword);
-router.post("/verify-reset-otp", validate({ body: verifyResetOtpSchema }), verifyResetOtp);
-router.post("/reset-password", validate({ body: resetPasswordSchema }), resetPassword);
 
 export default router;

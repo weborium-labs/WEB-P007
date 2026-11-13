@@ -4,6 +4,9 @@ import ms from "ms";
 
 import { env } from "../config/env.js";
 import { getValidated } from "../middlewares/validate.middleware.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import {
     createAuthTokens,
     findOrCreateGoogleUser,
@@ -16,14 +19,14 @@ import {
     verifyRefreshToken,
     verifyResetOtp as verifyResetOtpService,
 } from "../services/auth.service.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 import type {
+    ForgotPasswordInput,
     LoginInput,
     ResendOtpInput,
+    ResetPasswordInput,
     SignupInput,
     VerifyOtpInput,
+    VerifyResetOtpInput,
 } from "../validators/auth.validator.js";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
@@ -182,30 +185,15 @@ export const signup: RequestHandler = asyncHandler(async (req, res) => {
 
 export const verifyOtp: RequestHandler = asyncHandler(async (req, res) => {
     const input = getValidated<VerifyOtpInput>(req, "body");
-    const user = await verifyOtpService(input);
-
-    const { accessToken, refreshToken } = await createAuthTokens(user);
-
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
-
-    const safeUser = {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        photoUrl: user.photoUrl,
-        batchId: user.batchId,
-        isEmailVerified: user.isEmailVerified,
-        verificationStatus: user.verificationStatus,
-    };
+    const { user } = await verifyOtpService(input);
 
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                { user: safeUser, accessToken },
-                "Email verified and logged in successfully.",
+                { user },
+                "Email verified successfully. Please log in to continue.",
             ),
         );
 });
@@ -223,29 +211,16 @@ export const resendOtp: RequestHandler = asyncHandler(async (req, res) => {
 
 export const login: RequestHandler = asyncHandler(async (req, res) => {
     const input = getValidated<LoginInput>(req, "body");
-    const user = await loginService(input);
-
-    const { accessToken, refreshToken } = await createAuthTokens(user);
+    const { user, accessToken, refreshToken } = await loginService(input);
 
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
-
-    const safeUser = {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        photoUrl: user.photoUrl,
-        batchId: user.batchId,
-        isEmailVerified: user.isEmailVerified,
-        verificationStatus: user.verificationStatus,
-    };
 
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                { user: safeUser, accessToken },
+                { user, accessToken },
                 "Logged in successfully.",
             ),
         );
@@ -269,7 +244,7 @@ export const forgotPassword: RequestHandler = asyncHandler(async (req, res) => {
 
 export const verifyResetOtp: RequestHandler = asyncHandler(async (req, res) => {
     const input = getValidated<VerifyResetOtpInput>(req, "body");
-    const data = await verifyResetOtp(input);
+    const data = await verifyResetOtpService(input);
     return res
         .status(200)
         .json(new ApiResponse(200, data, "OTP verified successfully."));
