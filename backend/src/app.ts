@@ -75,6 +75,12 @@ app.use(passport.initialize());
 // Trust edge reverse proxy (Nginx / Cloudflare) to accurately read host & IP
 app.set("trust proxy", 1);
 
+app.get("/", (_req, res) => {
+  return res.status(200).json(
+    new ApiResponse(200, [], 'IMS Weborium Labs running at port 5000')
+  );
+})
+
 // API v1 root
 app.get("/api/v1", (_req, res) => {
   return res.status(200).json(
