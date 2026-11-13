@@ -13,6 +13,8 @@ import DashBoard from "./page/DashBoard";
 import { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { Divide, Layers3 } from "lucide-react";
+import LandingPage from "./page/LandingPage";
 
 /**
  * Signup route wrapper.
@@ -79,10 +81,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Default entry point */}
-        <Route
-          path="/"
-          element={<Navigate to="/auth/signup" replace />}
-        />
+        <Route path="/" element={<LandingPage />} />
 
         {/* Authentication pages */}
         <Route path="/auth/signup" element={<SignupRoute />} />
