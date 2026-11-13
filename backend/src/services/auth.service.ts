@@ -15,11 +15,16 @@ import { getPasswordResetOtpEmailTemplate,
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import type {
+    ForgotPasswordInput,
     LoginInput,
     ResendOtpInput,
+    ResetPasswordInput,
     SignupInput,
     VerifyOtpInput,
+    VerifyResetOtpInput,
 } from "../validators/auth.validator.js";
+
+
 
 const accessTokenSecret = env.ACCESS_TOKEN_SECRET;
 const refreshTokenSecret = env.REFRESH_TOKEN_SECRET;
