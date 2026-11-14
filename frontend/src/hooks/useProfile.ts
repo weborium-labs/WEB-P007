@@ -49,6 +49,7 @@ export function useProfileQuery() {
 }
 
 export interface UpdateProfilePayload {
+    username?: string;
     phone?: string;
     dob?: string;
     universityName?: string;
@@ -67,6 +68,8 @@ export function useUpdateProfileMutation() {
             return data.data;
         },
         onSuccess: (profile) => {
+            // Write the server's response straight into the cache: no
+            // invalidate + refetch round-trip for data we already have.
             queryClient.setQueryData(["profile"], profile);
         },
     });

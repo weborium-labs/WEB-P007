@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import Button from "../component/Button";
 import GoogleIcon from "../assets/GoogleIcon.svg";
+import type { ApiClientError } from "../api/apiClient";
+import { normalizeUsername, validateUsername } from "../lib/username";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import {
     useChangePasswordMutation,
@@ -20,10 +22,21 @@ import {
  *
  * Rules honoured here:
  *  - email is read-only (server enforces it too);
+ *  - username is edited through an explicit read → edit → save flow where the
+ *    only availability check is the atomic PATCH (no keystroke round-trips);
  *  - provider status comes from the server (`providers.*`), not client state;
  *  - password change always re-verifies the current password server-side;
  *  - no secrets (hashes, OTPs) ever reach this component.
  */
+
+/** Message shown when the backend reports the username is already taken. */
+const USERNAME_TAKEN_MESSAGE =
+    "This username is already taken. Please choose another one.";
+
+const USERNAME_UPDATED_MESSAGE = "Username updated successfully.";
+
+const USERNAME_FALLBACK_ERROR =
+    "Could not save your username. Please try again.";
 
 /** Safe link-flow status codes returned by the OAuth callback redirect. */
 const LINK_ERROR_COPY: Readonly<Record<string, string>> = {
@@ -100,6 +113,30 @@ export default function ProfilePage() {
     const [fields, setFields] = useState<FieldState | null>(null);
     const [saveMessage, setSaveMessage] = useState("");
     const [saveError, setSaveError] = useState("");
+
+    // Username editor: an explicit read → edit → save flow. The draft lives in
+    // local state only — no request (and no availability check) while typing.
+    const [isEditingUsername, setIsEditingUsername] = useState(false);
+    const [usernameDraft, setUsernameDraft] = useState("");
+    const [usernameError, setUsernameError] = useState("");
+    // Inline confirmation shown under the field after a successful save.
+    const [usernameNotice, setUsernameNotice] = useState("");
+    const usernameInputRef = useRef<HTMLInputElement>(null);
+    // Synchronous double-submit guard for the username Save action.
+    const usernameSaveRef = useRef(false);
+
+    // Moving focus into the field when edit mode opens is a genuine DOM sync,
+    // so it belongs in an effect (autoFocus only applies on first mount).
+    useEffect(() => {
+        if (isEditingUsername) {
+            usernameInputRef.current?.focus();
+        }
+    }, [isEditingUsername]);
+
+    // A second instance of the shared update mutation, so the username Save
+    // button reports its own pending state instead of toggling the details
+    // form's button. Same mutationFn, same cache write — no duplicated logic.
+    const usernameMutation = useUpdateProfileMutation();
 
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -203,6 +240,105 @@ export default function ProfilePage() {
     const initials = (profile.username || profile.email)
         .slice(0, 2)
         .toUpperCase();
+
+    /* ------------------------------ Username ------------------------------ */
+
+    // Format feedback is computed locally and never hits the network. It is
+    // only surfaced while editing, so the saved value never looks invalid.
+    const usernameValidation = isEditingUsername
+        ? validateUsername(usernameDraft)
+        : null;
+    const usernameFieldError = usernameError || usernameValidation;
+
+    const startUsernameEdit = () => {
+        setUsernameDraft(profile.username);
+        setUsernameError("");
+        setUsernameNotice("");
+        setIsEditingUsername(true);
+    };
+
+    const cancelUsernameEdit = () => {
+        // Discard the draft and fall back to the last server-confirmed value.
+        setUsernameDraft(profile.username);
+        setUsernameError("");
+        setUsernameNotice("");
+        setIsEditingUsername(false);
+    };
+
+    const handleUsernameChange = (value: string) => {
+        setUsernameDraft(value);
+        // A stale conflict no longer applies once the user types a new value.
+        setUsernameError("");
+        setUsernameNotice("");
+    };
+
+    const saveUsername = async () => {
+        // Synchronous in-flight guard: `usernameMutation.isPending` only flips
+        // after a re-render, so a fast double-click in the same tick could pass
+        // an `isPending` check. This ref does not, so exactly one PATCH can
+        // ever be issued per save.
+        if (usernameSaveRef.current) return;
+
+        // Malformed values are already rendered under the field — stop here so
+        // an invalid draft can never reach the API.
+        if (validateUsername(usernameDraft)) return;
+
+        const normalized = normalizeUsername(usernameDraft);
+
+        // Unchanged: close the editor without a pointless write or feedback
+        // that would imply something was saved.
+        if (normalized === profile.username) {
+            setUsernameDraft(normalized);
+            setUsernameError("");
+            setUsernameNotice("");
+            setIsEditingUsername(false);
+            return;
+        }
+
+        usernameSaveRef.current = true;
+        setUsernameNotice("");
+        try {
+            // The response is the updated profile — cache it and mirror it into
+            // the auth store, so nothing needs a follow-up GET or a refresh.
+            const updated = await usernameMutation.mutateAsync({
+                username: normalized,
+            });
+            syncAuthUser(updated);
+            setUsernameDraft(updated.username);
+            setUsernameError("");
+            setIsEditingUsername(false);
+            setUsernameNotice(USERNAME_UPDATED_MESSAGE);
+        } catch (err) {
+            const apiError = err as Partial<ApiClientError>;
+
+            if (apiError.status === 409 && apiError.code === "USERNAME_TAKEN") {
+                // Stay in edit mode with the typed value intact so the user can
+                // pick another name — the cache and auth store are untouched.
+                setUsernameError(USERNAME_TAKEN_MESSAGE);
+                return;
+            }
+
+            const message = apiError.message || USERNAME_FALLBACK_ERROR;
+            setUsernameError(message);
+        } finally {
+            usernameSaveRef.current = false;
+        }
+    };
+
+    const handleUsernameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            // The field sits inside the details <form>; never let Enter fall
+            // through to its submit handler.
+            event.preventDefault();
+            void saveUsername();
+            return;
+        }
+
+        if (event.key === "Escape") {
+            event.preventDefault();
+            cancelUsernameEdit();
+        }
+    };
 
     return (
         <main className="min-h-screen bg-[#F7F8FA] px-5 py-8 font-inter sm:px-8">
@@ -336,13 +472,90 @@ export default function ProfilePage() {
                                 <label htmlFor="profile-username" className={labelClass}>
                                     Username
                                 </label>
-                                <input
-                                    id="profile-username"
-                                    type="text"
-                                    value={profile.username}
-                                    disabled
-                                    className={inputClass}
-                                />
+
+                                {/* Same 42px row height in both states, so
+                                    switching read → edit never shifts the
+                                    surrounding layout. */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <input
+                                        ref={usernameInputRef}
+                                        id="profile-username"
+                                        type="text"
+                                        name="username"
+                                        autoComplete="username"
+                                        spellCheck={false}
+                                        value={
+                                            isEditingUsername
+                                                ? usernameDraft
+                                                : profile.username
+                                        }
+                                        onChange={(e) =>
+                                            handleUsernameChange(e.target.value)
+                                        }
+                                        onKeyDown={handleUsernameKeyDown}
+                                        disabled={!isEditingUsername}
+                                        aria-invalid={
+                                            usernameFieldError ? true : undefined
+                                        }
+                                        aria-describedby={
+                                            usernameFieldError
+                                                ? "profile-username-error"
+                                                : undefined
+                                        }
+                                        className={`${inputClass} min-w-[170px] flex-1`}
+                                    />
+
+                                    {isEditingUsername ? (
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-[42px]"
+                                                onClick={cancelUsernameEdit}
+                                                disabled={
+                                                    usernameMutation.isPending
+                                                }
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="h-[42px]"
+                                                onClick={() => void saveUsername()}
+                                                loading={
+                                                    usernameMutation.isPending
+                                                }
+                                                loadingLabel="Saving…"
+                                            >
+                                                Save
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-[42px]"
+                                            onClick={startUsernameEdit}
+                                            aria-label="Edit username"
+                                        >
+                                            Edit
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {usernameFieldError ? (
+                                    <p
+                                        id="profile-username-error"
+                                        role="alert"
+                                        className="mt-1.5 text-sm text-[#C33F45]"
+                                    >
+                                        {usernameFieldError}
+                                    </p>
+                                ) : usernameNotice ? (
+                                    <p role="status" className="mt-1.5 text-sm text-[#027A48]">
+                                        {usernameNotice}
+                                    </p>
+                                ) : null}
                             </div>
 
                             <div>

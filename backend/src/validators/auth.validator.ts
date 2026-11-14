@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { usernameSchema } from "./common.validator.js";
+
 export const signupSchema = {
     body: z
         .object({
@@ -8,15 +10,7 @@ export const signupSchema = {
                 .trim()
                 .toLowerCase()
                 .email("Enter a valid email address."),
-            username: z
-                .string("Username is required.")
-                .trim()
-                .min(3, "Username must be at least 3 characters.")
-                .max(30, "Username cannot exceed 30 characters.")
-                .regex(
-                    /^[a-zA-Z0-9._-]+$/,
-                    "Username can only contain letters, numbers, dots, underscores, or hyphens.",
-                ),
+            username: usernameSchema,
             password: z
                 .string("Password is required.")
                 .min(8, "Use at least 8 characters for your password.")

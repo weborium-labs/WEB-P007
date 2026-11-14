@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 
-import type { User } from "../generated/prisma/client.js";
+import { Prisma, type User } from "../generated/prisma/client.js";
 import { prisma } from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import { toPublicUser } from "./auth.service.js";
@@ -54,20 +54,77 @@ export const getProfile = async (userId: string): Promise<UserProfile> => {
 };
 
 /**
+ * Extracts the violated index name from a Prisma P2002 error.
+ *
+ * The project runs Prisma against the `@prisma/adapter-pg` driver adapter, which
+ * reports the constraint under `meta.driverAdapterError.cause.constraint.index`
+ * instead of the classic `meta.target`. Both shapes are handled so the caller can
+ * distinguish the username indexes from any other unique violation.
+ */
+const uniqueIndexFromError = (error: {
+    meta?: unknown;
+}): string | undefined => {
+    const meta = error.meta as
+        | {
+              target?: unknown;
+              driverAdapterError?: {
+                  cause?: { constraint?: { index?: unknown } };
+              };
+          }
+        | undefined;
+
+    const adapterIndex =
+        meta?.driverAdapterError?.cause?.constraint?.index;
+    if (typeof adapterIndex === "string") return adapterIndex;
+
+    const target = meta?.target;
+    if (typeof target === "string") return target;
+    if (Array.isArray(target)) {
+        return target.filter((entry): entry is string => typeof entry === "string").join(",");
+    }
+
+    return undefined;
+};
+
+/** True only for a unique violation caused by a username index. */
+const isUsernameConflict = (error: unknown): boolean => {
+    if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== "P2002"
+    ) {
+        return false;
+    }
+
+    const index = uniqueIndexFromError(error);
+
+    // Both `User_username_key` (exact) and `User_username_lower_key`
+    // (case-insensitive) are username indexes. Anything else — an unrelated
+    // constraint — must keep flowing to the generic error handler.
+    return index !== undefined && /username/i.test(index);
+};
+
+/**
  * Updates editable profile fields. Unknown/extra fields never reach Prisma:
  * the validator whitelists the shape and we spread only those keys.
+ *
+ * Username availability is decided by the database itself: this performs a
+ * single UPDATE and lets the unique indexes arbitrate. There is deliberately no
+ * preceding SELECT — that would be a time-of-check/time-of-use race under
+ * concurrent claims of the same name.
  */
 export const updateProfile = async (
     userId: string,
     input: UpdateProfileInput,
 ): Promise<UserProfile> => {
     const data: {
+        username?: string;
         phone?: string;
         dob?: string;
         universityName?: string;
         photoUrl?: string | null;
     } = {};
 
+    if (input.username !== undefined) data.username = input.username;
     if (input.phone !== undefined) data.phone = input.phone;
     if (input.dob !== undefined) data.dob = input.dob;
     if (input.universityName !== undefined) {
@@ -75,12 +132,24 @@ export const updateProfile = async (
     }
     if (input.photoUrl !== undefined) data.photoUrl = input.photoUrl;
 
-    const user = await prisma.user.update({
-        where: { id: userId },
-        data,
-    });
+    try {
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data,
+        });
 
-    return buildUserProfile(user);
+        return buildUserProfile(user);
+    } catch (error) {
+        // A conflict is only mapped to USERNAME_TAKEN when a username was part
+        // of this write *and* the failing index is a username index.
+        if (input.username !== undefined && isUsernameConflict(error)) {
+            throw new ApiError(409, "This username is already taken.", [
+                { code: "USERNAME_TAKEN", field: "username" },
+            ]);
+        }
+
+        throw error;
+    }
 };
 
 /**

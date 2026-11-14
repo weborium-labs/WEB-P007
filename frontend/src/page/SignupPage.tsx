@@ -13,6 +13,7 @@ import Button from "../component/Button";
 import LeftGradient from "../assets/left-gradient.png";
 import GoogleIcon from "../assets/GoogleIcon.svg";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { validateUsername } from "../lib/username";
 import {
     useResendOtpMutation,
     useSignupMutation,
@@ -93,8 +94,11 @@ function validateSignup(values: SignupValues): FieldErrors {
     if (!isValidEmail(values.email)) {
         errors.email = "Enter a valid email address.";
     }
-    if (values.fullName.trim().length < 3) {
-        errors.fullName = "Enter at least 3 characters.";
+    // `fullName` is stored as the account username — reuse the shared rules
+    // instead of a second, looser copy that could drift from the server.
+    const usernameError = validateUsername(values.fullName);
+    if (usernameError) {
+        errors.fullName = usernameError;
     }
     if (values.password.length < 8) {
         errors.password = "Use at least 8 characters for your password.";

@@ -67,6 +67,85 @@ describe("updateProfileSchema", () => {
     });
 });
 
+describe("updateProfileSchema (username)", () => {
+    it("accepts a valid username", () => {
+        const result = parseProfile({ username: "jane.doe_1-2" });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.username).toBe("jane.doe_1-2");
+        }
+    });
+
+    it("trims leading and trailing whitespace", () => {
+        const result = parseProfile({ username: "   jane.doe   " });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.username).toBe("jane.doe");
+        }
+    });
+
+    it("accepts the minimum and maximum length", () => {
+        expect(parseProfile({ username: "abc" }).success).toBe(true);
+        expect(parseProfile({ username: "a".repeat(30) }).success).toBe(true);
+    });
+
+    it("rejects a username below the minimum length", () => {
+        expect(parseProfile({ username: "ab" }).success).toBe(false);
+        // Whitespace-only trims down to nothing.
+        expect(parseProfile({ username: "   " }).success).toBe(false);
+    });
+
+    it("rejects a username above the maximum length", () => {
+        expect(parseProfile({ username: "a".repeat(31) }).success).toBe(false);
+    });
+
+    it("rejects unsupported characters", () => {
+        expect(parseProfile({ username: "jane doe" }).success).toBe(false);
+        expect(parseProfile({ username: "jane@doe" }).success).toBe(false);
+        expect(parseProfile({ username: "jane!doe" }).success).toBe(false);
+        expect(parseProfile({ username: "jane/doe" }).success).toBe(false);
+    });
+
+    it("rejects an empty or non-string username", () => {
+        expect(parseProfile({ username: "" }).success).toBe(false);
+        expect(parseProfile({ username: 42 }).success).toBe(false);
+        expect(parseProfile({ username: null }).success).toBe(false);
+    });
+
+    it("accepts username together with other editable fields", () => {
+        const result = parseProfile({
+            username: "jane.doe",
+            phone: "+91 98765 43210",
+            universityName: "Gujarat Technological University",
+        });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.username).toBe("jane.doe");
+            expect(result.data.phone).toBe("+91 98765 43210");
+        }
+    });
+
+    it("rejects unknown fields alongside a username (mass assignment)", () => {
+        expect(
+            parseProfile({ username: "jane.doe", role: "ADMIN" }).success,
+        ).toBe(false);
+        expect(
+            parseProfile({ username: "jane.doe", email: "x@example.com" })
+                .success,
+        ).toBe(false);
+        expect(
+            parseProfile({ username: "jane.doe", activeStatus: false }).success,
+        ).toBe(false);
+        expect(
+            parseProfile({ username: "jane.doe", password: "Hacked123" })
+                .success,
+        ).toBe(false);
+    });
+});
+
 describe("changePasswordSchema", () => {
     const valid = {
         currentPassword: "OldPass123",

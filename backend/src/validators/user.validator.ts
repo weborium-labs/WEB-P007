@@ -1,18 +1,25 @@
 import { z } from "zod";
 
+import { usernameSchema } from "./common.validator.js";
+
 /**
  * Profile endpoints for the signed-in user (`/users/me`).
  *
  * Email is intentionally NOT editable here (release scope excludes email
  * change); password changes require the current password and live in their
  * own endpoint so a single compromised field cannot take over the account.
+ * Username IS editable, but only through the atomic update path — availability
+ * is decided by the case-insensitive unique index, never by a SELECT.
  */
 
 const phoneRegex = /^\+?[0-9][0-9\s-]{6,16}$/;
 
 export const updateProfileSchema = {
+    // `.strict()`: unknown keys are rejected instead of silently stripped, so
+    // a mass-assignment attempt (role, email, activeStatus, …) fails loudly.
     body: z
         .object({
+            username: usernameSchema.optional(),
             phone: z
                 .string("Phone number is required.")
                 .trim()
@@ -46,6 +53,7 @@ export const updateProfileSchema = {
                 .max(500, "Photo URL cannot exceed 500 characters.")
                 .nullish(),
         })
+        .strict()
         .refine(
             (data) =>
                 Object.values(data).some((value) => value !== undefined),
