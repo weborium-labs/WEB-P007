@@ -2,6 +2,7 @@ import {
   BrowserRouter,
   Link,
   Navigate,
+  Outlet,
   Route,
   Routes,
   useNavigate,
@@ -9,11 +10,29 @@ import {
 
 import SignupPage from "./page/SignupPage";
 import LoginPage from "./page/LoginPage";
-import DashBoard from "./page/DashBoard";
 import { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import LandingPage from "./page/LandingPage";
+import Sidebar from "./component/sidebar/Sidebar";
+import InternDashboard from "./page/dashboards/intern/InternDashboard"
+import CaptureToken from "./component/auth/CaptureToken";
+
+/**
+ * Shared app shell: sidebar + page area in one flex row, so everything
+ * rendered inside the page area moves together when the sidebar toggles.
+ * The sidebar renders null on hidden routes, giving the page full width.
+ */
+function AppLayout() {
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="min-w-0 flex-1">
+        <Outlet />
+      </div>
+    </div>
+  );
+}
 
 /**
  * Signup route wrapper.
@@ -65,39 +84,41 @@ function TermsAndServicesRoute() {
 }
 
 export default function App() {
-
   useEffect(() => {
     AOS.init({
       once: true,
-    })
-  }, [])
+    });
+  }, []);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Default entry point */}
-        <Route path="/" element={<LandingPage />} />
+    <div className="font-inter">
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppLayout />}>
+            {/* Default entry point */}
+            <Route path="/" element={<LandingPage />} />
 
-        {/* Authentication pages */}
-        <Route path="/auth/signup" element={<SignupRoute />} />
-        <Route path="/auth/login" element={<LoginRoute />} />
-        <Route
-          path="/dashboard"
-          element={<DashBoard />}
-        />
+            {/* Authentication pages */}
+            <Route path="/auth/signup" element={<SignupRoute />} />
+            <Route path="/auth/login" element={<LoginRoute />} />
+            <Route path="/verify-token" element={<CaptureToken />} />
 
-        {/* Public legal page */}
-        <Route
-          path="/terms-and-services"
-          element={<TermsAndServicesRoute />}
-        />
+            <Route path="/intern/dashboard" element={<InternDashboard />} />
 
-        {/* Prevent blank screens for unknown routes */}
-        <Route
-          path="*"
-          element={<Navigate to="/auth/signup" replace />}
-        />
-      </Routes>
-    </BrowserRouter>
+            {/* Public legal page */}
+            < Route
+              path="/terms-and-services"
+              element={<TermsAndServicesRoute />}
+            />
+
+            Prevent blank screens for unknown routes
+            {/* <Route
+              path="*"
+              element={<Navigate to="/intern/dashboard" replace />}
+            /> */}
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </div>
   );
 }
