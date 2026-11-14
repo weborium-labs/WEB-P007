@@ -1,0 +1,18 @@
+// One-time authorization codes for the OAuth redirect -> session exchange.
+//
+// The Google callback never puts a reusable access token in the URL. It issues
+// a random code here (only its SHA-256 hash is stored) and the frontend redeems
+// it once through POST /api/v1/auth/google/exchange. Consumption is atomic:
+// `UPDATE ... WHERE consumedAt IS NULL`, so replays, double-renders and
+// duplicated OAuth callbacks cannot redeem the same code twice.
+model AuthCode {
+  id        String    @id @default(uuid())
+  codeHash  String    @unique
+  userId    String
+  expiresAt DateTime // short-lived (seconds, not minutes)
+  consumedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}

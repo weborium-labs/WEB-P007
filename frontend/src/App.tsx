@@ -16,7 +16,15 @@ import "aos/dist/aos.css";
 import LandingPage from "./page/LandingPage";
 import Sidebar from "./component/sidebar/Sidebar";
 import InternDashboard from "./page/dashboards/intern/InternDashboard"
+import GroupManagerDashboard from "./page/dashboards/gpm/GroupManagerDashboard";
+import HrDashboard from "./page/dashboards/hr/HrDashboard";
+import AdminDashboard from "./page/dashboards/admin/AdminDashboard";
 import CaptureToken from "./component/auth/CaptureToken";
+import AuthFailurePage from "./page/AuthFailurePage";
+import ProfilePage from "./page/ProfilePage";
+import { ProtectedRoute } from "./component/ProtectedRoute";
+import { dashboardPathForRole } from "./lib/routes";
+import { useAuthStore } from "./store/auth.store";
 
 /**
  * Shared app shell: sidebar + page area in one flex row, so everything
@@ -52,6 +60,33 @@ function SignupRoute() {
 /** Login route wrapper. */
 function LoginRoute() {
   return <LoginPage />;
+}
+
+/**
+ * Role-aware `/dashboard` entry point.
+ *
+ * The sidebar and older links point at `/dashboard`; this resolves the
+ * signed-in user's role to that role's dashboard so every entry path
+ * (login, OAuth, sidebar, bookmarks) lands in the same place.
+ */
+function DashboardRedirect() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
+  const role = useAuthStore((s) => s.user?.role);
+
+  if (isBootstrapping) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
+        <span className="h-7 w-7 animate-spin rounded-full border-2 border-[#2862F4] border-r-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  return <Navigate to={dashboardPathForRole(role ?? "INTERN")} replace />;
 }
 
 /**
@@ -102,8 +137,18 @@ export default function App() {
             <Route path="/auth/signup" element={<SignupRoute />} />
             <Route path="/auth/login" element={<LoginRoute />} />
             <Route path="/verify-token" element={<CaptureToken />} />
+            <Route path="/auth/failure" element={<AuthFailurePage />} />
 
-            <Route path="/intern/dashboard" element={<InternDashboard />} />
+            {/* Role dashboards — every authenticated entry point resolves
+                through `dashboardPathForRole` (login, OAuth, /dashboard). */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<DashboardRedirect />} />
+              <Route path="/intern/dashboard" element={<InternDashboard />} />
+              <Route path="/gpm/dashboard" element={<GroupManagerDashboard />} />
+              <Route path="/hr/dashboard" element={<HrDashboard />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
+            </Route>
 
             {/* Public legal page */}
             < Route
@@ -111,11 +156,13 @@ export default function App() {
               element={<TermsAndServicesRoute />}
             />
 
-            Prevent blank screens for unknown routes
-            {/* <Route
-              path="*"
-              element={<Navigate to="/intern/dashboard" replace />}
-            /> */}
+            {/* Back-compat aliases for older links */}
+            <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+            <Route path="/signup" element={<Navigate to="/auth/signup" replace />} />
+            <Route path="/terms" element={<Navigate to="/terms-and-services" replace />} />
+
+            {/* Unknown routes land on the landing page, never a blank screen */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>

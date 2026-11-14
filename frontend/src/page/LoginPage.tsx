@@ -11,6 +11,7 @@ import Button from "../component/Button";
 import LeftGradient from "../assets/left-gradient.png";
 import GoogleIcon from "../assets/GoogleIcon.svg";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { dashboardPathForRole } from "../lib/routes";
 import { AuthPageBackdrop, AuthVisualPanel } from "./SignupPage";
 import {
     useForgotPasswordMutation,
@@ -63,11 +64,12 @@ export default function Login() {
         }
 
         try {
-            await loginMutation.mutateAsync({
+            const { user } = await loginMutation.mutateAsync({
                 identifier: identifier.trim(),
                 password,
             });
-            navigate("/dashboard");
+            // Role-based landing: each role goes to its own dashboard.
+            navigate(dashboardPathForRole(user.role), { replace: true });
         } catch (err: unknown) {
             const msg = (err as { message?: string })?.message || "Invalid credentials.";
             setFormError(msg);
@@ -75,7 +77,19 @@ export default function Login() {
     };
 
     const handleGoogleLogin = () => {
-        window.location.href = `${import.meta.env.VITE_GOOGLE_CALLBACK_URI}/?role=Intern`;
+        const baseUri = import.meta.env.VITE_GOOGLE_CALLBACK_URI?.replace(
+            /\/+$/,
+            "",
+        );
+
+        if (!baseUri) {
+            setFormError("Google sign-in is not configured.");
+            return;
+        }
+
+        // Role only matters when this Google identity creates a new account;
+        // existing accounts resolve by googleId regardless of role.
+        window.location.href = `${baseUri}?role=Intern`;
     };
 
     // Step 1: Send Reset OTP

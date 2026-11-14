@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../api/apiClient";
 import { useAuthStore, type AuthUser } from "../store/auth.store";
 
@@ -75,6 +75,55 @@ export function useLoginMutation() {
         },
         onSuccess: ({ user, accessToken }) => {
             setAuth(user, accessToken);
+        },
+    });
+}
+
+/**
+ * Redeems the single-use OAuth authorization code from `/verify-token`.
+ *
+ * The backend never puts a reusable access token in the URL — this mutation
+ * exchanges the code for `{ accessToken, user }` and sets the HTTP-only
+ * refresh cookie in the same response.
+ */
+export function useExchangeGoogleCodeMutation() {
+    const setAuth = useAuthStore((s) => s.setAuth);
+
+    return useMutation({
+        mutationFn: async (code: string) => {
+            const { data } = await apiClient.post<AuthResponse>(
+                "/auth/google/exchange",
+                { code },
+            );
+            return data.data;
+        },
+        onSuccess: ({ user, accessToken }) => {
+            setAuth(user, accessToken);
+        },
+    });
+}
+
+/**
+ * Logs the user out.
+ *
+ * Backend clears the HTTP-only refresh cookie (the access token is memory-only
+ * and simply disappears with the store). Local cleanup runs `onSettled` so the
+ * session is torn down even when the network call fails — a failed logout must
+ * never leave a half-authenticated UI behind.
+ */
+export function useLogoutMutation() {
+    const clearAuth = useAuthStore((s) => s.clearAuth);
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            const { data } = await apiClient.post("/auth/logout");
+            return data;
+        },
+        onSettled: () => {
+            clearAuth();
+            // Drop every cached query so no user data survives the session.
+            queryClient.clear();
         },
     });
 }

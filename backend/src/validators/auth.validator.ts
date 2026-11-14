@@ -120,6 +120,16 @@ export const resetPasswordSchema = {
         }),
 };
 
+export const exchangeCodeSchema = {
+    body: z.object({
+        code: z
+            .string("Authorization code is required.")
+            .trim()
+            .min(16, "Authorization code is invalid.")
+            .max(128, "Authorization code is invalid."),
+    }),
+};
+
 export type SignupInput = z.infer<typeof signupSchema.body>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema.body>;
 export type ResendOtpInput = z.infer<typeof resendOtpSchema.body>;
@@ -127,3 +137,4 @@ export type LoginInput = z.infer<typeof loginSchema.body>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema.body>;
 export type VerifyResetOtpInput = z.infer<typeof verifyResetOtpSchema.body>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema.body>;
+export type ExchangeCodeInput = z.infer<typeof exchangeCodeSchema.body>;

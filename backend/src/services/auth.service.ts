@@ -1,8 +1,6 @@
 
-import { randomBytes } from "node:crypto";
 import jwt from "jsonwebtoken";
-import { AuthType, type User } from "../generated/prisma/client.js";
-import type { Profile } from "passport-google-oauth20";
+import type { User } from "../generated/prisma/client.js";
 
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
@@ -29,6 +27,25 @@ import type {
 const accessTokenSecret = env.ACCESS_TOKEN_SECRET;
 const refreshTokenSecret = env.REFRESH_TOKEN_SECRET;
 
+/**
+ * The single canonical public user shape returned by every authenticated
+ * response (login, OTP verification, refresh, OAuth exchange).
+ *
+ * Never includes password, OTP material, googleId or raw activity fields.
+ */
+export const toPublicUser = (user: User) => ({
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    role: user.role,
+    photoUrl: user.photoUrl,
+    batchId: user.batchId,
+    isEmailVerified: user.isEmailVerified,
+    verificationStatus: user.verificationStatus,
+});
+
+export type PublicUser = ReturnType<typeof toPublicUser>;
+
 const generateAccessToken = (user: User): string => {
     return jwt.sign(
         {
@@ -54,165 +71,6 @@ const generateRefreshToken = (user: User): string => {
             expiresIn: env.REFRESH_TOKEN_EXPIRES_IN as jwt.SignOptions["expiresIn"],
         },
     );
-};
-
-const generateUsername = async (
-    displayName: string,
-): Promise<string> => {
-    const base =
-        displayName
-            .toLowerCase()
-            .trim()
-            .replace(/[^a-z0-9]+/g, ".")
-            .replace(/^\.+|\.+$/g, "")
-            .slice(0, 24) || "intern";
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-        const candidate = `${base}.${randomBytes(3).toString("hex")}`;
-
-        const existing = await prisma.user.findUnique({
-            where: { username: candidate },
-            select: { id: true },
-        });
-
-        if (!existing) {
-            return candidate;
-        }
-    }
-
-    throw new ApiError(
-        500,
-        "Unable to generate a unique username.",
-    );
-};
-
-const GOOGLE_SIGNUP_ROLE_MAP = {
-    Intern: "INTERN",
-    Group_manager: "GPM",
-    HR: "HR",
-} as const;
-
-type GoogleSignupRole = keyof typeof GOOGLE_SIGNUP_ROLE_MAP;
-
-function getGoogleSignupRole(
-    role: unknown,
-): (typeof GOOGLE_SIGNUP_ROLE_MAP)[GoogleSignupRole] {
-    if (
-        typeof role !== "string" ||
-        !Object.prototype.hasOwnProperty.call(
-            GOOGLE_SIGNUP_ROLE_MAP,
-            role,
-        )
-    ) {
-        throw new ApiError(400, "Invalid or missing signup role.");
-    }
-
-    return GOOGLE_SIGNUP_ROLE_MAP[role as GoogleSignupRole];
-}
-
-export const findOrCreateGoogleUser = async (
-    profile: Profile,
-    requestedRole: unknown,
-): Promise<User> => {
-    const googleId = profile.id;
-    const email = profile.emails?.[0]?.value?.trim().toLowerCase();
-    const displayName = profile.displayName?.trim();
-    const photoUrl = profile.photos?.[0]?.value ?? null;
-
-    const googleEmailVerified =
-        profile._json?.email_verified === true;
-
-    if (!googleId || !email || !displayName) {
-        throw new ApiError(
-            400,
-            "Google profile is incomplete.",
-        );
-    }
-
-    if (!googleEmailVerified) {
-        throw new ApiError(
-            403,
-            "Google email address is not verified.",
-        );
-    }
-
-    const existingGoogleUser = await prisma.user.findUnique({
-        where: { googleId },
-    });
-
-    if (existingGoogleUser) {
-        if (!existingGoogleUser.activeStatus) {
-            throw new ApiError(
-                403,
-                "Your account is inactive.",
-            );
-        }
-
-        return prisma.user.update({
-            where: { id: existingGoogleUser.id },
-            data: {
-                lastLoginAt: new Date(),
-                lastActivityAt: new Date(),
-                photoUrl,
-            },
-        });
-    }
-
-    const existingEmailUser = await prisma.user.findUnique({
-        where: { email },
-    });
-
-    if (existingEmailUser) {
-        throw new ApiError(
-            409,
-            "An account with this email already exists. Sign in using your existing credentials before linking Google.",
-        );
-    }
-
-    const role = getGoogleSignupRole(requestedRole);
-
-    const username = await generateUsername(displayName);
-
-    try {
-        return await prisma.user.create({
-            data: {
-                googleId,
-                email,
-                username,
-                photoUrl,
-                authType: AuthType.GOOGLE,
-                role,
-                activeStatus: true,
-                lastLoginAt: new Date(),
-                lastActivityAt: new Date(),
-            },
-        });
-    } catch (error) {
-        // Recover only when another callback created this Google user.
-        const racedUser = await prisma.user.findUnique({
-            where: { googleId },
-        });
-
-        if (!racedUser) {
-            throw error;
-        }
-
-        if (!racedUser.activeStatus) {
-            throw new ApiError(
-                403,
-                "Your account is inactive.",
-            );
-        }
-
-        return prisma.user.update({
-            where: { id: racedUser.id },
-            data: {
-                lastLoginAt: new Date(),
-                lastActivityAt: new Date(),
-                photoUrl,
-            },
-        });
-    }
 };
 
 export const createAuthTokens = async (user: User) => {
@@ -412,16 +270,11 @@ emailService
     const accessToken = generateAccessToken(verifiedUser);
     const refreshToken = generateRefreshToken(verifiedUser);
 
-    const safeUser = {
-        id: verifiedUser.id,
-        email: verifiedUser.email,
-        username: verifiedUser.username,
-        role: verifiedUser.role,
-        isEmailVerified: verifiedUser.isEmailVerified,
-        verificationStatus: verifiedUser.verificationStatus,
+    return {
+        user: toPublicUser(verifiedUser),
+        accessToken,
+        refreshToken,
     };
-
-    return { user: safeUser, accessToken, refreshToken };
 };
 
 export const resendOtp = async (input: ResendOtpInput) => {
@@ -523,18 +376,11 @@ export const login = async (input: LoginInput) => {
     const accessToken = generateAccessToken(updatedUser);
     const refreshToken = generateRefreshToken(updatedUser);
 
-    const safeUser = {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        username: updatedUser.username,
-        role: updatedUser.role,
-        photoUrl: updatedUser.photoUrl,
-        batchId: updatedUser.batchId,
-        isEmailVerified: updatedUser.isEmailVerified,
-        verificationStatus: updatedUser.verificationStatus,
+    return {
+        user: toPublicUser(updatedUser),
+        accessToken,
+        refreshToken,
     };
-
-    return { user: safeUser, accessToken, refreshToken };
 };
 
 export const forgotPassword = async (input: ForgotPasswordInput) => {

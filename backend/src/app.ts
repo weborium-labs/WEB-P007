@@ -101,7 +101,7 @@ app.use("/api/v1", v1Router);
 
 // 404 handler
 app.use((_req, _res, next) => {
-  next(new ApiError(404, "Route not found."));
+  next(new ApiError(404, "Route not found"));
 });
 
 // Centralized global error handler

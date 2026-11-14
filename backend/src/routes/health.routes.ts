@@ -4,11 +4,18 @@ import { emailService } from "../services/email.service.js";
 
 const router: ExpressRouter = Router();
 
-router.get("/", async () => {
-}, (_req: Request, res: Response) => {
-  return res.status(200).json(new ApiResponse(200, {
-    timestamp: new Date().toISOString()
-  }, 'IMS Service is healthy!'));
+router.get("/", (_req: Request, res: Response) => {
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        service: "backend",
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+      },
+      "WEB-P007 IMS API is running",
+    ),
+  );
 });
 
 router.get("/email-test", async (_req: Request, res: Response) => {
