@@ -54,6 +54,21 @@ describe("User profile routes", () => {
             .expect(401);
     });
 
+    it("requires authentication for POST /users/me/password/setup", async () => {
+        const res = await request(app)
+            .post("/api/v1/users/me/password/setup")
+            .send({
+                email: "intern@example.com",
+                password: "NewPass123",
+                confirmPassword: "NewPass123",
+            })
+            .expect(401);
+
+        expect(res.body).toMatchObject({ statusCode: 401 });
+        // Rejected before validation or any credential write.
+        expect(res.body.message).toBe("Authentication required.");
+    });
+
     it("requires authentication for POST /users/me/google/link/init", async () => {
         const res = await request(app)
             .post("/api/v1/users/me/google/link/init")

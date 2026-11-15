@@ -21,13 +21,13 @@ export interface ButtonProps
 
 const variantClasses: Record<ButtonVariant, string> = {
     primary:
-        "border border-transparent bg-[#2862F4] text-white shadow-none hover:bg-[#1F55DC] focus-visible:ring-[#2862F4]/35 active:bg-[#194BCB]",
+        "border border-transparent bg-brand text-white shadow-none hover:bg-brand-hover focus-visible:ring-brand/35 active:bg-brand-active",
     secondary:
-        "border border-transparent bg-[#F0F2F5] text-[#141B2A] hover:bg-[#E8EBF0] focus-visible:ring-[#98A2B3]/35 active:bg-[#E1E5EB]",
+        "border border-transparent bg-grey-50 text-ink hover:bg-grey-100 focus-visible:ring-ink-400/35 active:bg-grey-100",
     outline:
-        "border border-[#DCE1E8] bg-white text-[#141B2A] hover:bg-[#F8F9FB] focus-visible:ring-[#98A2B3]/35 active:bg-[#F1F3F6]",
+        "border border-line bg-surface text-ink hover:bg-grey-25 focus-visible:ring-ink-400/35 active:bg-grey-50",
     ghost:
-        "border border-transparent bg-transparent text-[#2862F4] hover:bg-[#2862F4]/5 focus-visible:ring-[#2862F4]/25 active:bg-[#2862F4]/10",
+        "border border-transparent bg-transparent text-brand-text hover:bg-brand/5 focus-visible:ring-brand/25 active:bg-brand/10",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

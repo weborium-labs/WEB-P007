@@ -7,8 +7,8 @@ export function ProtectedRoute() {
 
     if (isBootstrapping) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
-                <span className="h-7 w-7 animate-spin rounded-full border-2 border-[#2862F4] border-r-transparent" />
+            <div className="flex min-h-screen items-center justify-center bg-canvas">
+                <span className="h-7 w-7 animate-spin rounded-full border-2 border-brand border-r-transparent" />
             </div>
         );
     }

@@ -72,8 +72,8 @@ export default function AuthFailurePage() {
     const content = FAILURE_CONTENT[reason] ?? GENERIC_FAILURE;
 
     const handleGoogleRetry = () => {
-        // Role selection happens on sign-up; login retries as Intern,
-        // matching the existing login-page behaviour.
+        // No role param: a brand-new identity picks its role after Google
+        // authenticates, existing accounts sign in directly.
         const baseUri = import.meta.env.VITE_GOOGLE_CALLBACK_URI?.replace(
             /\/+$/,
             "",
@@ -84,16 +84,16 @@ export default function AuthFailurePage() {
             return;
         }
 
-        window.location.href = `${baseUri}?role=Intern`;
+        window.location.href = baseUri;
     };
 
     return (
-        <main className="flex min-h-[100svh] items-center justify-center bg-[#F7F8FA] px-5 py-12 font-sans text-[#141B2A]">
-            <section className="w-full max-w-[440px] rounded-2xl border border-[#EEF0F3] bg-white p-8 text-center shadow-[0_14px_44px_rgba(20,27,42,0.10)]">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#FEE4E2]">
+        <main className="flex min-h-[100svh] items-center justify-center bg-canvas px-5 py-12 font-sans text-ink">
+            <section className="w-full max-w-[440px] rounded-2xl border border-line-soft bg-surface p-8 text-center shadow-[0_14px_44px_rgba(20,27,42,0.10)]">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-bad-soft-2">
                     <span
                         aria-hidden="true"
-                        className="text-[20px] leading-none font-bold text-[#C33F45]"
+                        className="text-[20px] leading-none font-bold text-bad"
                     >
                         !
                     </span>
@@ -102,7 +102,7 @@ export default function AuthFailurePage() {
                 <h1 className="mt-4 text-[22px] font-bold tracking-[-0.02em]">
                     {content.title}
                 </h1>
-                <p className="mt-2 text-[14px] leading-6 text-[#647087]">
+                <p className="mt-2 text-[14px] leading-6 text-ink-500">
                     {content.body}
                 </p>
 
@@ -131,7 +131,7 @@ export default function AuthFailurePage() {
                     <button
                         type="button"
                         onClick={() => navigate("/auth/signup", { replace: true })}
-                        className="mx-auto block text-[13px] font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
+                        className="mx-auto block text-[13px] font-medium text-brand-strong underline underline-offset-2 hover:text-brand-link"
                     >
                         Create an account
                     </button>

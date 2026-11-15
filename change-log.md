@@ -148,3 +148,64 @@ user profile work), newest work last.
   cache/Zustand untouched on 409, synced on success, double-click guard,
   persistence after reload) — rerun as **15/15** after the toast removal..
 - No schema/migration changes; both username indexes verified intact.
+
+## 12. Dark Mode Across the Entire Frontend
+
+- **Goal:** whole-app light/dark theming with a toggle directly below the
+  "Your Profile" action in the account menu, switching via a smooth fade
+  rather than a snap.
+- **Token architecture** (`frontend/src/index.css`): a single class flip on
+  `<html class="dark">` re-themes everything. ~50 semantic CSS variables in
+  `:root` (light = the exact pre-existing hex values, so light mode is
+  pixel-identical) with `.dark` overrides, exposed to Tailwind v4 through
+  `@theme inline` so utilities emit `var(--c-*)` and pick up the override at
+  runtime. `@custom-variant dark` keeps `dark:` utilities working.
+  Tokens: surfaces (`canvas`, `surface`, `grey-25/50/100`, `line-soft`,
+  `line`, `line-mid`, `panel`), ink ramp (`ink`, `ink-800…400`), brand
+  (`brand`, `brand-text/strong/link/alt/alt-solid/hover/active/soft`) and
+  semantic `ok*` / `bad*` / `warn*`.
+- **Color migration:** 23 files converted from hardcoded `bg-[#…]` /
+  `text-[#…]` / `border-[#…]` / `ring-[#…]` to tokens by an exhaustive
+  scripted map (then hand-fixed: SVG `fill`/`stroke` attributes, JS tone and
+  state-color constants, `color-mix()` tints replacing the invalid
+  `var(--c-x)1A` hex-suffix trick). Near-duplicate hexes were merged into
+  shared tokens. Invariant brand panels (`bg-panel` = `#020407`), gradient
+  fills, avatar gradients and `bg-white/NN` glass tints were deliberately
+  left literal — they are correct in both themes.
+- **Toggle** (`StatusPill.tsx`): inserted between "Your Profile" and
+  "Log Out" behind a divider, as `role="menuitemcheckbox"` + `aria-checked`
+  with a Sun/Moon icon and a switch. It intentionally does **not** close the
+  menu — it is a view preference, not navigation, and staying open makes the
+  cross-fade visible.
+- **Smooth fade:** `store/theme.store.ts` adds `html.theme-fade` for
+  `FADE_MS = 420`; `index.css` gives that class `!important` transitions on
+  background/border/color/fill/stroke/box-shadow/outline/**transform**
+  (400 ms, disabled under `prefers-reduced-motion`), so every token cross-
+  fades together while the switch knob still slides. The class is removed
+  afterwards so normal transitions are unaffected.
+- **State & no-flash:** Zustand store (`ims-theme` localStorage key). With
+  no stored choice the OS preference wins and is followed live via a
+  `matchMedia` listener (`ThemeInitializer`); an explicit choice then beats
+  the OS. `index.html` runs the same resolution inline in `<head>` before
+  React mounts, so the first paint is already correct — no theme flash.
+- Verification: `npm run build` ✅, `npm run lint` exit **0** (0 errors, the
+  same 4 pre-existing warnings). Headless-Chrome CDP E2E: **32/32** (theme
+  resolution incl. live OS-follow and stored-choice-beats-OS, menu placement,
+  fade sampling through intermediate background values, full re-theme,
+  persistence across reload, round-trip back to light) + **19/19** sweep of
+  landing/login/signup/terms/sidebar (re-themed, zero un-migrated light
+  surfaces). WCAG contrast audit: **dark mode 0 failures** vs. a light
+  baseline of 7 (all 7 are pre-existing `text-ink-400` on white cards,
+  unchanged from before this work). Screenshots reviewed for landing,
+  login, dashboard, account menu and profile in both themes.
+- Two issues found and fixed during verification: the dark
+  `brand-alt-solid` badge (white text at 3.68:1 → back to `#2563eb`, 5.12:1)
+  and the landing nav's `bg-white/80` glass, which stayed white while its
+  text inverted (now `bg-surface/80` — identical in light, re-themes in
+  dark).
+- Known limitations: brand panels and gradients are theme-invariant by
+  design; `theme-color` meta is still `#020407`; the toggle lives in the
+  `StatusPill` account menu, which only mounts on the intern dashboard
+  topbar (the sidebar is global, so the theme itself applies everywhere);
+  `frontend/package-lock.json` carries a drift-repair diff from the earlier
+  `sonner` uninstall.

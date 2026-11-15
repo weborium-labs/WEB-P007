@@ -15,7 +15,9 @@ import { ApiError } from "../utils/ApiError.js";
  * defeats OAuth login CSRF and state replay.
  *
  * Two modes exist:
- *  - `login` — carries the signup role for a brand-new Google user.
+ *  - `login` — a plain Google sign-in. The role no longer travels here: a
+ *    brand-new identity is *never* given an implicit role. The callback hands
+ *    the SPA a `pending` token (see below) and the user picks their role.
  *  - `link`  — carries the *already authenticated* user who asked to connect
  *              Google to their existing account (account linking, Feature 3).
  */
@@ -29,14 +31,13 @@ const STATE_PURPOSE = "google_oauth_state";
 const STATE_TTL_SECONDS = 10 * 60;
 
 export type OAuthState =
-    | { mode: "login"; role: string; nonce: string }
+    | { mode: "login"; nonce: string }
     | { mode: "link"; userId: string; nonce: string };
 
 interface StateClaims {
     purpose: string;
     nonce: string;
     mode: "login" | "link";
-    role?: string;
     userId?: string;
 }
 
@@ -77,7 +78,6 @@ const safeEquals = (a: string, b: string): boolean => {
 
 const signState = (claims: {
     mode: "login" | "link";
-    role?: string;
     userId?: string;
     nonce: string;
 }): string =>
@@ -86,8 +86,8 @@ const signState = (claims: {
         expiresIn: STATE_TTL_SECONDS as jwt.SignOptions["expiresIn"],
     });
 
-export const signLoginState = (role: string, nonce: string): string =>
-    signState({ mode: "login", role, nonce });
+export const signLoginState = (nonce: string): string =>
+    signState({ mode: "login", nonce });
 
 export const signLinkState = (userId: string, nonce: string): string =>
     signState({ mode: "link", userId, nonce });
@@ -132,11 +132,7 @@ export const verifyOAuthState = (
     }
 
     if (claims.mode === "login") {
-        if (typeof claims.role !== "string" || claims.role.length === 0) {
-            throw new ApiError(400, "OAuth state is invalid or has expired.");
-        }
-
-        return { mode: "login", role: claims.role, nonce: claims.nonce };
+        return { mode: "login", nonce: claims.nonce };
     }
 
     if (claims.mode === "link") {
@@ -148,4 +144,93 @@ export const verifyOAuthState = (
     }
 
     throw new ApiError(400, "OAuth state is invalid or has expired.");
+};
+
+/* -------------------------------------------------------------------------- */
+/*  Pending Google signup                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Carries a Google-verified identity from the OAuth callback to the role
+ * chooser in the SPA, and back to `POST /auth/google/signup`.
+ *
+ * The account is deliberately **not created** at callback time: the user must
+ * pick a role first. This token is what holds the identity in the meantime —
+ * signed (HS256), purpose-bound and short-lived, so it can be neither forged
+ * nor replayed as anything else. It contains no secrets (only the profile data
+ * Google already exposed) and never grants a session by itself: a verified
+ * token still only leads to account creation, then the normal single-use code
+ * exchange.
+ */
+const PENDING_SIGNUP_PURPOSE = "google_signup_pending";
+const PENDING_SIGNUP_TTL_SECONDS = 10 * 60;
+
+export interface PendingSignupProfile {
+    googleId: string;
+    email: string;
+    displayName: string;
+    photoUrl: string | null;
+}
+
+interface PendingSignupClaims extends PendingSignupProfile {
+    purpose: string;
+}
+
+const invalidPendingToken = (): ApiError =>
+    new ApiError(400, "This sign-up link is invalid or has expired.", [
+        { code: "SIGNUP_PENDING_INVALID" },
+    ]);
+
+export const signGoogleSignupPending = (
+    profile: PendingSignupProfile,
+): string =>
+    jwt.sign(
+        { ...profile, purpose: PENDING_SIGNUP_PURPOSE },
+        env.ACCESS_TOKEN_SECRET,
+        {
+            algorithm: "HS256",
+            expiresIn: PENDING_SIGNUP_TTL_SECONDS as jwt.SignOptions["expiresIn"],
+        },
+    );
+
+export const verifyGoogleSignupPending = (
+    raw: unknown,
+): PendingSignupProfile => {
+    if (typeof raw !== "string" || raw.length === 0) {
+        throw invalidPendingToken();
+    }
+
+    let claims: PendingSignupClaims;
+
+    try {
+        const decoded = jwt.verify(raw, env.ACCESS_TOKEN_SECRET, {
+            algorithms: ["HS256"],
+        });
+
+        if (typeof decoded === "string") throw new Error("Malformed token.");
+
+        claims = decoded as PendingSignupClaims;
+    } catch {
+        throw invalidPendingToken();
+    }
+
+    if (
+        claims.purpose !== PENDING_SIGNUP_PURPOSE ||
+        typeof claims.googleId !== "string" ||
+        claims.googleId.length === 0 ||
+        typeof claims.email !== "string" ||
+        claims.email.length === 0 ||
+        typeof claims.displayName !== "string" ||
+        claims.displayName.length === 0
+    ) {
+        throw invalidPendingToken();
+    }
+
+    return {
+        googleId: claims.googleId,
+        email: claims.email,
+        displayName: claims.displayName,
+        photoUrl:
+            typeof claims.photoUrl === "string" ? claims.photoUrl : null,
+    };
 };

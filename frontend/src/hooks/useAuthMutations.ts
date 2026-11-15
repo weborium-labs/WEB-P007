@@ -104,6 +104,27 @@ export function useExchangeGoogleCodeMutation() {
 }
 
 /**
+ * Step 2b of the Google flow: submits the role a brand-new Google identity
+ * picked on `/auth/google/role`.
+ *
+ * The `pending` token is the signed identity the OAuth callback handed over —
+ * the account does not exist yet. On success the backend returns a single-use
+ * `{ code }`, which the caller redeems through `/verify-token` so the normal
+ * exchange/session logic runs untouched.
+ */
+export function useGoogleSignupMutation() {
+    return useMutation({
+        mutationFn: async (payload: { pending: string; role: string }) => {
+            const { data } = await apiClient.post<{ data: { code: string } }>(
+                "/auth/google/signup",
+                payload,
+            );
+            return data.data;
+        },
+    });
+}
+
+/**
  * Logs the user out.
  *
  * Backend clears the HTTP-only refresh cookie (the access token is memory-only

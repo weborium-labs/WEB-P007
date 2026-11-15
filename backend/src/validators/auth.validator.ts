@@ -124,6 +124,29 @@ export const exchangeCodeSchema = {
     }),
 };
 
+/**
+ * Step 2b of the Google flow: the role chooser submits the signed `pending`
+ * token it was redirected with, plus the role the user just picked.
+ *
+ * The role list must stay in sync with `GOOGLE_SIGNUP_ROLE_MAP` in
+ * `google-auth.service` — the service validates it again before insert.
+ */
+export const googleSignupSchema = {
+    body: z
+        .object({
+            pending: z
+                .string("Sign-up token is required.")
+                .trim()
+                .min(1, "This sign-up link is invalid or has expired.")
+                // Signed JWT bound to one short signup — generous but bounded.
+                .max(4096, "This sign-up link is invalid or has expired."),
+            role: z.enum(["Intern", "Group_manager", "HR"], {
+                message: "Choose a role to continue.",
+            }),
+        })
+        .strict(),
+};
+
 export type SignupInput = z.infer<typeof signupSchema.body>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema.body>;
 export type ResendOtpInput = z.infer<typeof resendOtpSchema.body>;
@@ -132,3 +155,4 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema.body>;
 export type VerifyResetOtpInput = z.infer<typeof verifyResetOtpSchema.body>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema.body>;
 export type ExchangeCodeInput = z.infer<typeof exchangeCodeSchema.body>;
+export type GoogleSignupInput = z.infer<typeof googleSignupSchema.body>;

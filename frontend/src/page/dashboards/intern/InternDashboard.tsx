@@ -37,7 +37,7 @@ const InternDashBoard = () => {
   };
 
   return (
-    <main className="@container flex min-h-screen flex-col bg-[#F8F9FB] pb-8 pl-10 pr-[34px] pt-8 font-inter">
+    <main className="@container flex min-h-screen flex-col bg-grey-25 pb-8 pl-10 pr-[34px] pt-8 font-inter">
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
         <Salutation name={INTERN_NAME} />
         <TopBar

@@ -24,20 +24,27 @@ import {
     consumeAuthCode,
     issueAuthCode,
 } from "../services/auth-code.service.js";
-import { findOrCreateGoogleUser, linkGoogleAccount } from "../services/google-auth.service.js";
+import {
+    createGoogleUser,
+    linkGoogleAccount,
+    resolveGoogleLogin,
+} from "../services/google-auth.service.js";
 import {
     clearNonceCookie,
     generateOAuthNonce,
     OAUTH_NONCE_COOKIE,
     setNonceCookie,
+    signGoogleSignupPending,
     signLinkState,
     signLoginState,
+    verifyGoogleSignupPending,
     verifyOAuthState,
     type OAuthState,
 } from "../services/oauth-state.service.js";
 import type {
     ExchangeCodeInput,
     ForgotPasswordInput,
+    GoogleSignupInput,
     LoginInput,
     ResendOtpInput,
     ResetPasswordInput,
@@ -81,11 +88,6 @@ const clearRefreshCookie = (res: Response): void => {
 /* -------------------------------------------------------------------------- */
 
 const GOOGLE_SCOPES = ["openid", "profile", "email"] as const;
-const VALID_GOOGLE_ROLES: readonly string[] = [
-    "Intern",
-    "Group_manager",
-    "HR",
-];
 
 /** Safe, non-leaking frontend failure reasons for the OAuth redirect flow. */
 const FAILURE_REASON_BY_CODE: Readonly<Record<string, string>> = {
@@ -121,9 +123,10 @@ const redirectToFrontend = (
 /**
  * Step 1 of the Google flow.
  *
- * `GET /api/v1/auth/google?role=X` starts a login (role travels inside a
- * signed, nonce-bound state), while `GET /api/v1/auth/google?state=<signed>`
- * resumes an authenticated account-linking flow started by the user profile.
+ * `GET /api/v1/auth/google` starts a login/signup — it carries **no role**:
+ * a brand-new identity is paused at the callback and picks its role in the
+ * SPA (never an implicit default). `GET /api/v1/auth/google?state=<signed>`
+ * resumes an authenticated account-linking flow started from the profile.
  * A raw/unsigned state never reaches Google.
  */
 export const startGoogleAuth: RequestHandler = (req, res, next) => {
@@ -135,20 +138,9 @@ export const startGoogleAuth: RequestHandler = (req, res, next) => {
             verifyOAuthState(rawState, req.cookies?.[OAUTH_NONCE_COOKIE]);
             state = rawState;
         } else {
-            const role = req.query.role;
-
-            if (
-                typeof role !== "string" ||
-                !VALID_GOOGLE_ROLES.includes(role)
-            ) {
-                return res
-                    .status(400)
-                    .json(new ApiResponse(400, [], "User Role is required"));
-            }
-
             const nonce = generateOAuthNonce();
             setNonceCookie(res, nonce);
-            state = signLoginState(role, nonce);
+            state = signLoginState(nonce);
         }
 
         return passport.authenticate("google", {
@@ -159,8 +151,8 @@ export const startGoogleAuth: RequestHandler = (req, res, next) => {
     } catch (error) {
         // An invalid pre-signed state during a browser navigation gets a
         // friendly redirect instead of a raw JSON body. The login flow never
-        // sends a `state` param (it sends `role`), so a presented-but-invalid
-        // state is always a linking attempt -> back to /profile.
+        // sends a `state` param, so a presented-but-invalid state is always a
+        // linking attempt -> back to /profile.
         if (error instanceof ApiError) {
             clearNonceCookie(res);
 
@@ -230,9 +222,11 @@ export const forwardProviderError: RequestHandler = (req, res, next) => {
 /**
  * Step 2 of the Google flow.
  *
- * Verifies the signed state + nonce binding, resolves or creates the user,
- * then redirects to the SPA with a **single-use code** — never with a
- * reusable access token.
+ * Verifies the signed state + nonce binding, resolves the identity, then:
+ *  - existing account  → redirects with a **single-use code** (never a token);
+ *  - brand-new account → does *not* create anything; redirects to the role
+ *    chooser with a short-lived `pending` token so the user picks their own
+ *    role instead of receiving a default.
  */
 export const googleCallback: RequestHandler = async (req, res, next) => {
     // Link failures return to /profile (the user stays signed in); login
@@ -283,8 +277,17 @@ export const googleCallback: RequestHandler = async (req, res, next) => {
             return redirectToFrontend(res, "/profile", { link: "success" });
         }
 
-        const user = await findOrCreateGoogleUser(profile, state.role);
-        const code = await issueAuthCode(user.id);
+        const resolution = await resolveGoogleLogin(profile);
+
+        if (resolution.kind === "new") {
+            // Google proved the identity, but nobody chose a role yet.
+            // Hand the SPA a signed, short-lived pending token and stop.
+            const pending = signGoogleSignupPending(resolution.profile);
+
+            return redirectToFrontend(res, "/auth/google/role", { pending });
+        }
+
+        const code = await issueAuthCode(resolution.user.id);
 
         return redirectToFrontend(res, "/verify-token", { code });
     } catch (error) {
@@ -304,6 +307,33 @@ export const googleCallback: RequestHandler = async (req, res, next) => {
         return next(error);
     }
 };
+
+/**
+ * Step 2b of the Google flow — role selection for a brand-new identity.
+ *
+ * `POST /auth/google/signup { pending, role }` verifies the pending token the
+ * callback issued, creates the account with the role the user just chose, and
+ * returns a single-use code for the normal exchange step. The role is checked
+ * twice (Zod enum in the validator, `getGoogleSignupRole` in the service), and
+ * the identity comes only from the signed token — never from the client body.
+ */
+export const signupWithGoogleRole: RequestHandler = asyncHandler(
+    async (req, res) => {
+        const { pending, role } = getValidated<GoogleSignupInput>(req, "body");
+
+        const profile = verifyGoogleSignupPending(pending);
+        const user = await createGoogleUser(profile, role);
+        const code = await issueAuthCode(user.id);
+
+        return res.status(201).json(
+            new ApiResponse(
+                201,
+                { code },
+                "Account created. Continue to finish signing in.",
+            ),
+        );
+    },
+);
 
 /**
  * Step 3 of the Google flow.

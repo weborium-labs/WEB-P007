@@ -9,6 +9,7 @@ import {
     assertGoogleLinkable,
     changePassword as changePasswordService,
     getProfile as getProfileService,
+    setPassword as setPasswordService,
     updateProfile as updateProfileService,
 } from "../services/user.service.js";
 import {
@@ -18,6 +19,7 @@ import {
 } from "../services/oauth-state.service.js";
 import type {
     ChangePasswordInput,
+    SetPasswordInput,
     UpdateProfileInput,
 } from "../validators/user.validator.js";
 
@@ -61,6 +63,22 @@ export const changePassword: RequestHandler = asyncHandler(
         );
     },
 );
+
+/**
+ * Sets the first local password on a Google-linked account (Feature: "set
+ * email & password"). The updated profile comes back so the client can write
+ * `providers.password = true` into its cache without a refetch.
+ */
+export const setPassword: RequestHandler = asyncHandler(async (req, res) => {
+    const { userId } = getAuth(req);
+    const input = getValidated<SetPasswordInput>(req, "body");
+
+    const profile = await setPasswordService(userId, input);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, profile, "Password set successfully."));
+});
 
 /**
  * Step 1 of account linking (Feature 3).

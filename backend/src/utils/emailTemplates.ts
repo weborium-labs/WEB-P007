@@ -130,6 +130,85 @@ export function getPasswordResetOtpEmailTemplate(params: {
   `);
 }
 
+export function getSigninMethodAddedEmailTemplate(params: {
+    username: string;
+}): string {
+    const loginLink = `${FRONTEND_URL}/login`;
+
+    return baseLayout(`
+    <div style="text-align:center;">
+      <span style="display:inline-block;padding:5px 12px;background-color:#ECFDF5;color:#2EAD79;border-radius:999px;font-size:12px;font-weight:600;">
+        ✓ Sign-in method added
+      </span>
+    </div>
+
+    <h1 style="margin:14px 0 0;text-align:center;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#141B2A;">
+      You can now sign in two ways
+    </h1>
+    <p style="margin:10px 0 0;text-align:center;font-size:14px;line-height:21px;color:#536078;">
+      Hi <strong style="color:#141B2A;">${params.username}</strong>, a password was added to your account. You can sign in with your <strong style="color:#141B2A;">email &amp; password</strong> or with <strong style="color:#141B2A;">Google</strong> — both lead to the same account.
+    </p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0;background-color:#F7F8FA;border-radius:14px;padding:16px;">
+      <tr>
+        <td style="font-size:13px;line-height:22px;color:#30394B;">
+          <div style="font-weight:600;color:#141B2A;margin-bottom:6px;">Your sign-in methods:</div>
+          <div>1. Email &amp; password</div>
+          <div>2. Google</div>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:24px auto 8px;">
+      <tr>
+        <td align="center" style="border-radius:12px;background-color:#2862F4;">
+          <a href="${loginLink}" target="_blank" style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:12px;">
+            Go to Login &rarr;
+          </a>
+        </td>
+      </tr>
+    </table>
+  `);
+}
+
+export function getUsernameChangedEmailTemplate(params: {
+    previousUsername: string;
+    newUsername: string;
+}): string {
+    const profileLink = `${FRONTEND_URL}/profile`;
+
+    return baseLayout(`
+    <div style="text-align:center;">
+      <span style="display:inline-block;padding:5px 12px;background-color:#EFF4FF;color:#2862F4;border-radius:999px;font-size:12px;font-weight:600;">
+        Username updated
+      </span>
+    </div>
+
+    <h1 style="margin:14px 0 0;text-align:center;font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#141B2A;">
+      Your username was changed
+    </h1>
+    <p style="margin:10px 0 0;text-align:center;font-size:14px;line-height:21px;color:#536078;">
+      Your username is now <strong style="color:#141B2A;">${params.newUsername}</strong> (previously <strong style="color:#141B2A;">${params.previousUsername}</strong>).
+    </p>
+
+    <div style="margin-top:24px;padding:12px 14px;background-color:#F7F8FA;border-radius:12px;border-left:3px solid #2862F4;">
+      <p style="margin:0;font-size:12px;line-height:18px;color:#536078;">
+        If you didn&apos;t make this change, secure your account immediately by resetting your password.
+      </p>
+    </div>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:24px auto 8px;">
+      <tr>
+        <td align="center" style="border-radius:12px;background-color:#2862F4;">
+          <a href="${profileLink}" target="_blank" style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:12px;">
+            Review your profile &rarr;
+          </a>
+        </td>
+      </tr>
+    </table>
+  `);
+}
+
 export function getWelcomeEmailTemplate(params: {
     username: string;
     role: string;

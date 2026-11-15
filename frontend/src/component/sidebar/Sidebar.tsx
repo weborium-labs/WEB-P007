@@ -128,7 +128,7 @@ const Logo = () => (
         >
             <path
                 d="M9.57469 0.0117222C9.83808 0.00129026 10.1284 0.00504791 10.3937 0.00844963C12.1593 0.0311925 13.9431 -0.0291633 15.7068 0.0196593C15.2679 0.869018 14.7573 1.7581 14.2995 2.60561L11.1466 8.46644L9.17037 12.166C8.81595 12.8373 7.91692 14.7416 7.45461 15.2033C6.73054 15.9261 5.60019 15.7469 4.66391 15.743C2.26166 15.7589 2.2785 15.6701 1.15723 13.5918L0 11.4494C0.292871 10.8537 0.734123 10.1084 1.05777 9.51264C1.56317 8.58177 2.08412 7.59097 2.61673 6.67924C2.88271 7.08729 3.26338 7.83537 3.51575 8.29052C4.40603 6.63376 5.30635 4.98234 6.21671 3.33643C6.52967 2.76824 6.86433 2.18214 7.16919 1.61163C7.72383 0.573393 8.3815 0.0816679 9.57469 0.0117222Z"
-                fill="#101828"
+                className="fill-ink"
             />
         </svg>
         <svg
@@ -141,7 +141,7 @@ const Logo = () => (
         >
             <path
                 d="M8.96546 0.000818369C9.64191 -0.0238036 9.97625 0.5114 10.2717 1.03439C11.1821 2.64745 12.2243 4.315 13.0459 5.97115C12.3594 7.26983 11.612 8.55882 10.9184 9.85707L9.4174 12.66C9.17766 13.1123 8.8579 13.6789 8.6457 14.1305C7.89907 15.7203 7.31508 15.7416 5.69013 15.7391L4.13308 15.7371L0 15.7381C0.502125 14.8387 1.00833 13.8182 1.49335 12.8991L5.52697 5.20878L6.84606 2.72277C7.21435 2.03566 7.55527 1.36442 8.01761 0.734649C8.31136 0.33451 8.44678 0.109025 8.96546 0.000818369Z"
-                fill="#101828"
+                className="fill-ink"
             />
         </svg>
         <svg
@@ -154,7 +154,7 @@ const Logo = () => (
         >
             <path
                 d="M0.299934 0.0231717C1.73348 -0.0137936 3.54416 0.0909457 4.91593 0.0171447C7.97115 -0.147207 8.11986 0.867153 9.4164 3.18579L11.9456 7.73553C11.5902 8.39997 11.1653 9.06347 10.8065 9.72661C10.3023 10.6585 9.81206 11.6046 9.3204 12.5435L8.05004 14.9853C6.24985 11.581 4.422 8.19137 2.56671 4.8167C1.70079 3.22603 0.890374 1.64948 0 0.0632135C0.0830018 0.01465 0.194448 0.0264115 0.299934 0.0231717Z"
-                fill="#101828"
+                className="fill-ink"
             />
         </svg>
     </div>
@@ -196,12 +196,12 @@ const SidebarLink = memo(function SidebarLink({
                 to={item.to}
                 title={collapsed ? item.label : undefined}
                 aria-label={collapsed ? item.label : undefined}
-                className={`flex h-10 w-full items-center rounded-md p-1.5 text-[#101828] outline-none transition-colors hover:bg-[#F1F3F6] focus-visible:ring-2 focus-visible:ring-[#101828]/30`}
+                className={`flex h-10 w-full items-center rounded-md p-1.5 text-ink outline-none transition-colors hover:bg-grey-50 focus-visible:ring-2 focus-visible:ring-ink/30`}
             >
                 <Icon className="h-6 w-6 shrink-0" />
                 <span
                     aria-hidden={collapsed}
-                    className={`overflow-hidden whitespace-nowrap font-inter text-base font-semibold leading-6 text-black transition-[max-width,opacity,margin] duration-300 ease-in-out motion-reduce:transition-none ${collapsed ? "ml-0 max-w-0 opacity-0" : "ml-2.5 max-w-[200px] opacity-100"
+                    className={`overflow-hidden whitespace-nowrap font-inter text-base font-semibold leading-6 text-ink transition-[max-width,opacity,margin] duration-300 ease-in-out motion-reduce:transition-none ${collapsed ? "ml-0 max-w-0 opacity-0" : "ml-2.5 max-w-[200px] opacity-100"
                         }`}
                 >
                     {item.label}
@@ -260,7 +260,7 @@ export default function Sidebar() {
     return (
         <aside
             style={{ width }}
-            className="fixed left-0 top-0 z-40 h-screen overflow-hidden transition-[width] duration-300 ease-in-out motion-reduce:transition-none border-r border-[#F1F3F6] bg-white px-4 py-8"
+            className="fixed left-0 top-0 z-40 h-screen overflow-hidden transition-[width] duration-300 ease-in-out motion-reduce:transition-none border-r border-grey-50 bg-surface px-4 py-8"
         >
             <div className="flex w-full flex-col items-start gap-9">
                 <div
@@ -280,7 +280,7 @@ export default function Sidebar() {
                         onClick={toggle}
                         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                         aria-expanded={!collapsed}
-                        className="flex h-10 w-10 items-center justify-center rounded-md p-1.5 text-[#101828] outline-none transition-colors hover:bg-[#F1F3F6] focus-visible:ring-2 focus-visible:ring-[#101828]/30"
+                        className="flex h-10 w-10 items-center justify-center rounded-md p-1.5 text-ink outline-none transition-colors hover:bg-grey-50 focus-visible:ring-2 focus-visible:ring-ink/30"
                     >
                         <CollapseIcon className={`h-6 w-6 ${collapsed ? "rotate-180" : ""}`} />
                     </button>

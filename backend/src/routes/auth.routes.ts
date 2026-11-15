@@ -13,12 +13,13 @@ import {
     resendOtp,
     resetPassword,
     signup,
+    signupWithGoogleRole,
     startGoogleAuth,
     verifyOtp,
     verifyResetOtp,
 } from "../controllers/auth.controller.js";
 
-import { signupSchema ,verifyOtpSchema ,resendOtpSchema,loginSchema,forgotPasswordSchema,verifyResetOtpSchema,resetPasswordSchema,exchangeCodeSchema } from "../validators/auth.validator.js";
+import { signupSchema ,verifyOtpSchema ,resendOtpSchema,loginSchema,forgotPasswordSchema,verifyResetOtpSchema,resetPasswordSchema,exchangeCodeSchema,googleSignupSchema } from "../validators/auth.validator.js";
 
 const router: Router = Router();
 
@@ -37,6 +38,13 @@ router.get(
     googleCallback,
 );
 router.get("/failure", oauthFailure);
+// Step 2b: a brand-new Google identity picks a role, then the account is
+// created and a single-use code issued for the normal exchange step.
+router.post(
+    "/google/signup",
+    validate(googleSignupSchema),
+    signupWithGoogleRole,
+);
 router.post("/google/exchange", validate(exchangeCodeSchema), exchangeGoogleCode);
 
 // Email / password auth

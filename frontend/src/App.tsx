@@ -21,6 +21,7 @@ import HrDashboard from "./page/dashboards/hr/HrDashboard";
 import AdminDashboard from "./page/dashboards/admin/AdminDashboard";
 import CaptureToken from "./component/auth/CaptureToken";
 import AuthFailurePage from "./page/AuthFailurePage";
+import GoogleSignupRolePage from "./page/GoogleSignupRolePage";
 import ProfilePage from "./page/ProfilePage";
 import { ProtectedRoute } from "./component/ProtectedRoute";
 import { dashboardPathForRole } from "./lib/routes";
@@ -76,8 +77,8 @@ function DashboardRedirect() {
 
   if (isBootstrapping) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
-        <span className="h-7 w-7 animate-spin rounded-full border-2 border-[#2862F4] border-r-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <span className="h-7 w-7 animate-spin rounded-full border-2 border-brand border-r-transparent" />
       </div>
     );
   }
@@ -96,20 +97,20 @@ function DashboardRedirect() {
  */
 function TermsAndServicesRoute() {
   return (
-    <main className="min-h-screen bg-[#F7F8FA] px-5 py-12 text-[#141B2A] sm:px-8">
-      <article className="mx-auto w-full max-w-3xl rounded-2xl bg-white p-6 shadow-sm sm:p-10">
+    <main className="min-h-screen bg-canvas px-5 py-12 text-ink sm:px-8">
+      <article className="mx-auto w-full max-w-3xl rounded-2xl bg-surface p-6 shadow-sm sm:p-10">
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Terms &amp; Services
         </h1>
 
-        <p className="mt-4 text-sm leading-6 text-[#647087]">
+        <p className="mt-4 text-sm leading-6 text-ink-500">
           Your approved Terms &amp; Services content will appear here. Replace
           this placeholder before publishing the application.
         </p>
 
         <Link
           to="/auth/signup"
-          className="mt-8 inline-flex font-medium text-[#1457E8] underline underline-offset-4 hover:text-[#0F45BD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2862F4] focus-visible:ring-offset-4"
+          className="mt-8 inline-flex font-medium text-brand-strong underline underline-offset-4 hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4"
         >
           Back to sign up
         </Link>
@@ -138,6 +139,12 @@ export default function App() {
             <Route path="/auth/login" element={<LoginRoute />} />
             <Route path="/verify-token" element={<CaptureToken />} />
             <Route path="/auth/failure" element={<AuthFailurePage />} />
+            {/* Google sign-up pause: a brand-new identity picks its role here
+                before any account exists. */}
+            <Route
+              path="/auth/google/role"
+              element={<GoogleSignupRolePage />}
+            />
 
             {/* Role dashboards — every authenticated entry point resolves
                 through `dashboardPathForRole` (login, OAuth, /dashboard). */}
