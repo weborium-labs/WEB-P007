@@ -21,6 +21,12 @@ import {
 } from "../hooks/useAuthMutations";
 
 type UserRole = "Intern" | "Group_manager" | "HR";
+
+/**
+ * Role choices shared by the sign-up form and the Google role-chooser screen
+ * (`GoogleSignupRolePage`), so both offer exactly the same set.
+ */
+export type { UserRole };
 type AuthMode = "signup" | "login";
 
 type SignupValues = {
@@ -124,7 +130,7 @@ export function AuthPageBackdrop({
     return (
         <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#020407] lg:hidden"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-panel lg:hidden"
         >
             <img
                 src={AUTH_GRADIENTS[mode]}
@@ -222,7 +228,7 @@ export function AuthVisualPanel({
         <aside
             aria-hidden="true"
             className={[
-                "relative isolate h-[288px] shrink-0 overflow-hidden bg-[#020407] text-white",
+                "relative isolate h-[288px] shrink-0 overflow-hidden bg-panel text-white",
                 "sm:h-64 lg:h-[calc(100svh-16px)] lg:min-h-[620px] lg:rounded-2xl",
                 isSignup ? "lg:col-start-1" : "lg:order-2 lg:col-start-2",
             ].join(" ")}
@@ -281,14 +287,14 @@ function FormField({
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? errorId : undefined}
                 className={[
-                    "h-[46px] w-full rounded-xl border bg-white px-4",
-                    "font-sans text-[14px] font-normal text-[#141B2A] outline-none",
-                    "placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10",
-                    error ? "border-[#DC5555]" : "border-[#E8EBF0]",
+                    "h-[46px] w-full rounded-xl border bg-surface px-4",
+                    "font-sans text-[14px] font-normal text-ink outline-none",
+                    "placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10",
+                    error ? "border-bad-line" : "border-grey-100",
                 ].join(" ")}
             />
             {error ? (
-                <p id={errorId} className="mt-1.5 text-left text-xs text-[#C33F45]">
+                <p id={errorId} className="mt-1.5 text-left text-xs text-bad">
                     {error}
                 </p>
             ) : null}
@@ -296,7 +302,7 @@ function FormField({
     );
 }
 
-function RoleSelect({
+export function RoleSelect({
     value,
     onChange,
     error,
@@ -363,11 +369,11 @@ function RoleSelect({
                 onClick={() => setIsOpen((open) => !open)}
                 onKeyDown={handleTriggerKeyDown}
                 className={[
-                    "flex h-[46px] w-full items-center justify-between rounded-xl border bg-white px-4",
+                    "flex h-[46px] w-full items-center justify-between rounded-xl border bg-surface px-4",
                     "text-left font-sans text-[14px] outline-none transition-colors",
-                    "focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10",
-                    error ? "border-[#DC5555]" : "border-[#E8EBF0]",
-                    value ? "text-[#141B2A]" : "text-[#98A2B3]",
+                    "focus:border-brand focus:ring-4 focus:ring-brand/10",
+                    error ? "border-bad-line" : "border-grey-100",
+                    value ? "text-ink" : "text-ink-400",
                 ].join(" ")}
             >
                 <span>{value || "Select role"}</span>
@@ -384,7 +390,7 @@ function RoleSelect({
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        stroke="#101828"
+                        className="stroke-ink"
                     />
                 </svg>
             </button>
@@ -393,7 +399,7 @@ function RoleSelect({
                     id={listboxId}
                     role="listbox"
                     aria-labelledby={`${listboxId}-label`}
-                    className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl border border-[#E8EBF0] bg-white py-1.5 shadow-[0_12px_32px_rgba(20,27,42,0.12)]"
+                    className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl border border-grey-100 bg-surface py-1.5 shadow-[0_12px_32px_rgba(20,27,42,0.12)]"
                 >
                     {ROLE_OPTIONS.map((role, index) => {
                         const selected = role === value;
@@ -408,9 +414,9 @@ function RoleSelect({
                                 onClick={() => chooseRole(role)}
                                 className={[
                                     "flex min-h-[37px] w-full items-center px-4 text-left text-[14px]",
-                                    "transition-colors hover:bg-[#F7F8FA]",
-                                    selected ? "font-medium text-[#2862F4]" : "text-[#141B2A]",
-                                    active && !selected ? "bg-[#F7F8FA]" : "",
+                                    "transition-colors hover:bg-canvas",
+                                    selected ? "font-medium text-brand-text" : "text-ink",
+                                    active && !selected ? "bg-canvas" : "",
                                 ].join(" ")}
                             >
                                 {role}
@@ -419,7 +425,7 @@ function RoleSelect({
                     })}
                 </div>
             ) : null}
-            {error ? <p className="mt-1.5 text-left text-xs text-[#C33F45]">{error}</p> : null}
+            {error ? <p className="mt-1.5 text-left text-xs text-bad">{error}</p> : null}
         </div>
     );
 }
@@ -464,12 +470,12 @@ function OtpDialog({
 
     const statusClass =
         status === "verified"
-            ? "text-[#2EAD79]"
+            ? "text-ok-bright"
             : status === "network-error"
-                ? "text-[#D99127]"
+                ? "text-warn"
                 : status === "otp-incorrect"
-                    ? "text-[#D94A4A]"
-                    : "text-[#647087]";
+                    ? "text-bad-bright"
+                    : "text-ink-500";
 
     return (
         <div
@@ -481,27 +487,27 @@ function OtpDialog({
                 aria-modal="true"
                 aria-labelledby="signup-otp-title"
                 aria-describedby="signup-otp-description"
-                className="relative w-full max-w-[414px] rounded-[20px] border border-[#EEF0F3] bg-white px-7 py-8 shadow-[0_14px_44px_rgba(20,27,42,0.12)] sm:px-9"
+                className="relative w-full max-w-[414px] rounded-[20px] border border-line-soft bg-surface px-7 py-8 shadow-[0_14px_44px_rgba(20,27,42,0.12)] sm:px-9"
             >
                 <button
                     type="button"
                     aria-label="Close modal"
                     onClick={onClose}
-                    className="absolute right-4 top-4 rounded-lg p-1 text-[#647087] hover:bg-[#F1F3F6] hover:text-[#141B2A]"
+                    className="absolute right-4 top-4 rounded-lg p-1 text-ink-500 hover:bg-grey-50 hover:text-ink"
                 >
                     ✕
                 </button>
                 <h2
                     id="signup-otp-title"
-                    className="text-center font-sans text-[20px] font-semibold leading-6 tracking-[-0.02em] text-[#141B2A]"
+                    className="text-center font-sans text-[20px] font-semibold leading-6 tracking-[-0.02em] text-ink"
                 >
                     Please check your email address
                 </h2>
                 <p
                     id="signup-otp-description"
-                    className="mt-1 text-center text-[13px] leading-5 text-[#536078]"
+                    className="mt-1 text-center text-[13px] leading-5 text-ink-600"
                 >
-                    We’ve sent a code to <span className="font-mono text-[#30394B]">{email}</span>
+                    We’ve sent a code to <span className="font-mono text-ink-800">{email}</span>
                 </p>
                 <div className="mt-6 flex items-center justify-center gap-3">
                     {digits.map((digit, index) => (
@@ -520,13 +526,13 @@ function OtpDialog({
                             onChange={(event) => onDigitChange(index, event.target.value)}
                             onKeyDown={(event) => onDigitKeyDown(index, event)}
                             onPaste={index === 0 ? onPaste : undefined}
-                            className="h-12 w-11 rounded-xl border border-transparent bg-[#F1F3F6] text-center font-mono text-[16px] text-[#141B2A] outline-none transition focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10 disabled:opacity-70"
+                            className="h-12 w-11 rounded-xl border border-transparent bg-grey-50 text-center font-mono text-[16px] text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10 disabled:opacity-70"
                         />
                     ))}
                 </div>
                 <div className="mt-5 flex min-h-5 items-center justify-center gap-2" aria-live="polite">
                     {busy ? (
-                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#747D8B] border-r-transparent" />
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-line-mid border-r-transparent" />
                     ) : status ? (
                         <>
                             <span aria-hidden="true" className={`text-[19px] leading-none ${statusClass}`}>
@@ -535,14 +541,14 @@ function OtpDialog({
                             <span className={`text-[13px] font-medium ${statusClass}`}>{message}</span>
                         </>
                     ) : noiseMessage ? (
-                        <p className="text-center text-[12px] text-[#2EAD79]">{noiseMessage}</p>
+                        <p className="text-center text-[12px] text-ok-bright">{noiseMessage}</p>
                     ) : null}
                 </div>
                 {status !== "verified" ? (
                     <button
                         type="button"
                         onClick={onResend}
-                        className="mt-3 block w-full text-center text-[13px] font-medium text-[#2862F4] underline underline-offset-2 hover:text-[#1F55DC]"
+                        className="mt-3 block w-full text-center text-[13px] font-medium text-brand-text underline underline-offset-2 hover:text-brand-strong"
                     >
                         Resend code
                     </button>
@@ -735,21 +741,17 @@ export default function Signup({
     const handleGoogleSignIn = async () => {
         setFormError("");
 
-        if (!values.role) {
-            setFieldErrors((current) => ({
-                ...current,
-                role: "Select a role to continue.",
-            }));
-            return;
-        }
-
         if (googleRequestInFlight.current) return;
         googleRequestInFlight.current = true;
         setIsGoogleLoading(true);
 
         try {
             const baseUri = import.meta.env.VITE_GOOGLE_CALLBACK_URI.replace(/\/+$/, "");
-            window.location.href = `${baseUri}?role=${values.role}`;
+            // No role travels with the request: a brand-new Google account
+            // picks its role on the screen right after Google authenticates
+            // (the role above stays what email signup uses). Existing
+            // accounts sign in directly regardless of any role.
+            window.location.href = baseUri;
         } catch (error) {
             setFormError(getErrorDetails(error).message);
         } finally {
@@ -786,8 +788,8 @@ export default function Signup({
     return (
         <div
             className={[
-                "relative isolate min-h-[100svh] w-full overflow-x-hidden bg-[#020407] font-sans text-[#141B2A]",
-                "lg:bg-[#F7F8FA]",
+                "relative isolate min-h-[100svh] w-full overflow-x-hidden bg-panel font-sans text-ink",
+                "lg:bg-canvas",
                 className,
             ].join(" ")}
         >
@@ -799,13 +801,13 @@ export default function Signup({
                     glowImageSrc={glowImageSrc}
                     weboriumLogoSrc={weboriumLogoSrc}
                 />
-                <main className="relative z-10 -mt-2 mx-2 mb-2 flex min-h-[calc(100svh-288px)] flex-1 flex-col items-center justify-start rounded-2xl bg-[#F7F8FA] px-6 pb-10 pt-7 sm:min-h-[calc(100svh-256px)] sm:px-10 sm:pt-12 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:my-0 lg:mt-0 lg:min-h-0 lg:justify-center lg:rounded-none lg:px-8 lg:py-10">
+                <main className="relative z-10 -mt-2 mx-2 mb-2 flex min-h-[calc(100svh-288px)] flex-1 flex-col items-center justify-start rounded-2xl bg-canvas px-6 pb-10 pt-7 sm:min-h-[calc(100svh-256px)] sm:px-10 sm:pt-12 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:my-0 lg:mt-0 lg:min-h-0 lg:justify-center lg:rounded-none lg:px-8 lg:py-10">
                     <div className="w-full max-w-[540px]">
                         <header className="text-center">
-                            <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]">
+                            <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-ink sm:text-[36px] lg:text-[40px]">
                                 Create your account
                             </h1>
-                            <p className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]">
+                            <p className="mt-2 text-[14px] font-semibold leading-5 text-ink-600 sm:text-[15px]">
                                 Join a smarter way to work.
                             </p>
                         </header>
@@ -854,7 +856,7 @@ export default function Signup({
                                 />
                             </div>
                             {formError ? (
-                                <p role="alert" className="mx-auto mt-3 max-w-[440px] text-left text-[13px] text-[#C33F45]">
+                                <p role="alert" className="mx-auto mt-3 max-w-[440px] text-left text-[13px] text-bad">
                                     {formError}
                                 </p>
                             ) : null}
@@ -874,7 +876,7 @@ export default function Signup({
                                 >
                                     Continue with Email
                                 </Button>
-                                <span className="my-0.5 text-center text-[12px] text-[#98A2B3] sm:my-0">
+                                <span className="my-0.5 text-center text-[12px] text-ink-400 sm:my-0">
                                     or
                                 </span>
                                 <Button
@@ -897,7 +899,7 @@ export default function Signup({
                                     Continue with Google
                                 </Button>
                             </div>
-                            <div className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]">
+                            <div className="mt-6 pt-1 text-center text-[13px] leading-5 text-ink-500">
                                 <p>
                                     By signing in you accept our{" "}
                                     <button
@@ -906,7 +908,7 @@ export default function Signup({
                                             if (onOpenTerms) onOpenTerms();
                                             else navigate("/terms");
                                         }}
-                                        className="hover:cursor-pointer font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
+                                        className="hover:cursor-pointer font-medium text-brand-strong underline underline-offset-2 hover:text-brand-link"
                                     >
                                         Terms & Services
                                     </button>
@@ -919,7 +921,7 @@ export default function Signup({
                                             if (onNavigateToLogin) onNavigateToLogin();
                                             else navigate("/login");
                                         }}
-                                        className="hover:cursor-pointer font-medium text-[#1457E8] underline underline-offset-2 hover:text-[#0F45BD]"
+                                        className="hover:cursor-pointer font-medium text-brand-strong underline underline-offset-2 hover:text-brand-link"
                                     >
                                         Log in
                                     </button>

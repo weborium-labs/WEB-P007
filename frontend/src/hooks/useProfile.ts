@@ -124,6 +124,37 @@ export function useLinkGoogleMutation() {
 }
 
 /**
+ * Sets the first local password on a Google-linked account (Profile →
+ * Sign-in methods → "Set email & password").
+ *
+ * The server returns the refreshed profile, which is written straight into
+ * the cache so `providers.password` flips to `true` without a refetch —
+ * same rule as the profile update mutation.
+ */
+export interface SetPasswordPayload {
+    email: string;
+    password: string;
+    confirmPassword: string;
+}
+
+export function useSetupPasswordMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (payload: SetPasswordPayload) => {
+            const { data } = await apiClient.post<ProfileResponse>(
+                "/users/me/password/setup",
+                payload,
+            );
+            return data.data;
+        },
+        onSuccess: (profile) => {
+            queryClient.setQueryData(["profile"], profile);
+        },
+    });
+}
+
+/**
  * Keeps the cached auth-store user in step after a profile edit (e.g. a new
  * photo URL shown in the top bar) without a second network round-trip.
  */

@@ -10,6 +10,7 @@ import {
     useChangePasswordMutation,
     useLinkGoogleMutation,
     useProfileQuery,
+    useSetupPasswordMutation,
     useSyncAuthUser,
     useUpdateProfileMutation,
 } from "../hooks/useProfile";
@@ -58,13 +59,13 @@ const LINK_ERROR_COPY: Readonly<Record<string, string>> = {
 };
 
 const inputClass =
-    "w-full rounded-lg border border-[#DCE1E8] bg-white px-3.5 py-2.5 text-sm text-[#141B2A] outline-none transition-colors placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-2 focus:ring-[#2862F4]/20 disabled:bg-[#F2F4F7] disabled:text-[#667085]";
+    "w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-400 focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:bg-grey-50 disabled:text-ink-500";
 
 const labelClass =
-    "mb-1.5 block text-[13px] font-medium text-[#475467]";
+    "mb-1.5 block text-[13px] font-medium text-ink-700";
 
 const cardClass =
-    "rounded-2xl border border-[#EEF0F3] bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]";
+    "rounded-2xl border border-line-soft bg-surface p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]";
 
 const ROLE_LABELS: Record<string, string> = {
     INTERN: "Intern",
@@ -93,6 +94,7 @@ export default function ProfilePage() {
     const updateMutation = useUpdateProfileMutation();
     const passwordMutation = useChangePasswordMutation();
     const linkMutation = useLinkGoogleMutation();
+    const setupMutation = useSetupPasswordMutation();
     const syncAuthUser = useSyncAuthUser();
 
     // Link-flow result returned by the OAuth callback (?link=success or
@@ -143,6 +145,25 @@ export default function ProfilePage() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [pwMessage, setPwMessage] = useState("");
     const [pwError, setPwError] = useState("");
+
+    // Set email & password modal (Google-linked accounts without a local
+    // password). Fields are local-only; nothing leaves the browser until submit.
+    const [isSetupOpen, setIsSetupOpen] = useState(false);
+    const [setupEmail, setSetupEmail] = useState("");
+    const [setupPassword, setSetupPassword] = useState("");
+    const [setupConfirm, setSetupConfirm] = useState("");
+    const [setupError, setSetupError] = useState("");
+    // Confirmation shown in the card after the modal closes successfully.
+    const [setupNotice, setSetupNotice] = useState("");
+    const setupEmailRef = useRef<HTMLInputElement>(null);
+
+    // Move focus into the first field when the modal opens — the same DOM sync
+    // rule (and effect) as the OTP dialog's first-digit focus.
+    useEffect(() => {
+        if (isSetupOpen) {
+            setupEmailRef.current?.focus();
+        }
+    }, [isSetupOpen]);
 
     // Effective form values: local edits win, otherwise the server profile.
     const effectiveFields: FieldState = fields ?? {
@@ -200,12 +221,64 @@ export default function ProfilePage() {
         }
     };
 
+    /* --------------------- Set email & password (Google) --------------------- */
+
+    const openSetup = () => {
+        // Prefill the confirmation field with the account email; the server
+        // still compares it case-insensitively before writing anything.
+        setSetupEmail(profile?.email ?? "");
+        setSetupPassword("");
+        setSetupConfirm("");
+        setSetupError("");
+        setSetupNotice("");
+        setIsSetupOpen(true);
+    };
+
+    const closeSetup = () => {
+        setIsSetupOpen(false);
+        setSetupError("");
+    };
+
+    const handleSetupPassword = async (e: FormEvent) => {
+        e.preventDefault();
+        setSetupError("");
+
+        // Mirrors the server-side refine so the user sees it instantly, without
+        // spending a request on a mismatch the client already knows about.
+        if (setupPassword !== setupConfirm) {
+            setSetupError("Passwords do not match.");
+            return;
+        }
+
+        try {
+            await setupMutation.mutateAsync({
+                email: setupEmail.trim(),
+                password: setupPassword,
+                confirmPassword: setupConfirm,
+            });
+
+            // The mutation already wrote the fresh profile into the cache, so
+            // `providers.password` is now true and the card re-renders itself.
+            setIsSetupOpen(false);
+            setSetupPassword("");
+            setSetupConfirm("");
+            setSetupNotice(
+                "Password set. You can now sign in with email & password or Google.",
+            );
+        } catch (err) {
+            setSetupError(
+                (err as { message?: string })?.message ||
+                    "Could not set your password. Please try again.",
+            );
+        }
+    };
+
     if (isLoading) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
+            <main className="flex min-h-screen items-center justify-center bg-canvas">
                 <span
                     aria-hidden="true"
-                    className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2862F4] border-r-transparent"
+                    className="h-8 w-8 animate-spin rounded-full border-[3px] border-brand border-r-transparent"
                 />
                 <span role="status" className="sr-only">
                     Loading your profile
@@ -216,11 +289,11 @@ export default function ProfilePage() {
 
     if (isError || !profile) {
         return (
-            <main className="flex min-h-screen flex-col items-center justify-center bg-[#F7F8FA] px-5 text-center">
-                <h1 className="text-[22px] font-bold tracking-[-0.02em] text-[#141B2A]">
+            <main className="flex min-h-screen flex-col items-center justify-center bg-canvas px-5 text-center">
+                <h1 className="text-[22px] font-bold tracking-[-0.02em] text-ink">
                     We couldn&apos;t load your profile
                 </h1>
-                <p role="alert" className="mt-2 text-sm text-[#647087]">
+                <p role="alert" className="mt-2 text-sm text-ink-500">
                     {(error as { message?: string })?.message ||
                         "Something went wrong. Please try again."}
                 </p>
@@ -228,7 +301,7 @@ export default function ProfilePage() {
                     <Button onClick={() => refetch()}>Try again</Button>
                     <Link
                         to="/dashboard"
-                        className="rounded-lg border border-[#DCE1E8] bg-white px-4 py-2.5 text-sm font-medium text-[#141B2A] transition-colors hover:bg-[#F8F9FB]"
+                        className="rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-grey-25"
                     >
                         Back to Dashboard
                     </Link>
@@ -341,20 +414,20 @@ export default function ProfilePage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#F7F8FA] px-5 py-8 font-inter sm:px-8">
+        <main className="min-h-screen bg-canvas px-5 py-8 font-inter sm:px-8">
             <div className="mx-auto w-full max-w-4xl">
                 <header className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-[28px] font-semibold leading-9 text-[#101828]">
+                        <h1 className="text-[28px] font-semibold leading-9 text-ink">
                             Your Profile
                         </h1>
-                        <p className="mt-1 text-base font-semibold leading-6 text-[#475467]">
+                        <p className="mt-1 text-base font-semibold leading-6 text-ink-700">
                             Manage your personal details and sign-in options.
                         </p>
                     </div>
                     <Link
                         to="/dashboard"
-                        className="rounded-lg border border-[#DCE1E8] bg-white px-4 py-2.5 text-sm font-medium text-[#141B2A] transition-colors hover:bg-[#F8F9FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2862F4]/35"
+                        className="rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-grey-25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
                     >
                         Back to Dashboard
                     </Link>
@@ -364,9 +437,9 @@ export default function ProfilePage() {
                 {linkStatus === "success" ? (
                     <div
                         role="status"
-                        className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-3"
+                        className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-ok-line bg-ok-soft px-4 py-3"
                     >
-                        <p className="text-sm font-medium text-[#027A48]">
+                        <p className="text-sm font-medium text-ok">
                             Google account linked successfully. You can now
                             sign in with Google.
                         </p>
@@ -374,7 +447,7 @@ export default function ProfilePage() {
                             type="button"
                             onClick={dismissLinkStatus}
                             aria-label="Dismiss"
-                            className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-[#027A48] hover:bg-[#D1FADF]"
+                            className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-ok hover:bg-ok-soft-2"
                         >
                             Dismiss
                         </button>
@@ -382,9 +455,9 @@ export default function ProfilePage() {
                 ) : linkErrorCode ? (
                     <div
                         role="alert"
-                        className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#FECDC9] bg-[#FEF3F2] px-4 py-3"
+                        className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-bad-line-2 bg-bad-soft px-4 py-3"
                     >
-                        <p className="text-sm font-medium text-[#B42318]">
+                        <p className="text-sm font-medium text-bad-strong">
                             {LINK_ERROR_COPY[linkErrorCode] ??
                                 LINK_ERROR_COPY.oauth_failed}
                         </p>
@@ -392,7 +465,7 @@ export default function ProfilePage() {
                             type="button"
                             onClick={dismissLinkStatus}
                             aria-label="Dismiss"
-                            className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-[#B42318] hover:bg-[#FEE4E2]"
+                            className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-bad-strong hover:bg-bad-soft-2"
                         >
                             Dismiss
                         </button>
@@ -409,29 +482,29 @@ export default function ProfilePage() {
                             {initials}
                         </span>
                         <div className="min-w-0">
-                            <p className="truncate text-lg font-semibold text-[#101828]">
+                            <p className="truncate text-lg font-semibold text-ink">
                                 {profile.username}
                             </p>
-                            <p className="truncate text-sm text-[#647087]">
+                            <p className="truncate text-sm text-ink-500">
                                 {profile.email}
                             </p>
                         </div>
                         <div className="ml-auto flex flex-wrap gap-2">
-                            <span className="rounded-full bg-[#EFF4FF] px-3 py-1 text-xs font-semibold text-[#1457E8]">
+                            <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong">
                                 {ROLE_LABELS[profile.role] ?? profile.role}
                             </span>
                             <span
                                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                     profile.isEmailVerified
-                                        ? "bg-[#ECFDF3] text-[#027A48]"
-                                        : "bg-[#FFFAEB] text-[#B54708]"
+                                        ? "bg-ok-soft text-ok"
+                                        : "bg-warn-soft text-warn-strong"
                                 }`}
                             >
                                 {profile.isEmailVerified
                                     ? "Email verified"
                                     : "Email unverified"}
                             </span>
-                            <span className="rounded-full bg-[#F2F4F7] px-3 py-1 text-xs font-semibold text-[#475467]">
+                            <span className="rounded-full bg-grey-50 px-3 py-1 text-xs font-semibold text-ink-700">
                                 KYC:{" "}
                                 {VERIFICATION_LABELS[profile.verificationStatus] ??
                                     profile.verificationStatus}
@@ -443,10 +516,10 @@ export default function ProfilePage() {
                 <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
                     {/* Editable details */}
                     <section className={cardClass}>
-                        <h2 className="text-lg font-semibold text-[#101828]">
+                        <h2 className="text-lg font-semibold text-ink">
                             Personal details
                         </h2>
-                        <p className="mt-1 text-sm text-[#647087]">
+                        <p className="mt-1 text-sm text-ink-500">
                             Your email address is your sign-in identity and
                             can&apos;t be changed here.
                         </p>
@@ -547,12 +620,12 @@ export default function ProfilePage() {
                                     <p
                                         id="profile-username-error"
                                         role="alert"
-                                        className="mt-1.5 text-sm text-[#C33F45]"
+                                        className="mt-1.5 text-sm text-bad"
                                     >
                                         {usernameFieldError}
                                     </p>
                                 ) : usernameNotice ? (
-                                    <p role="status" className="mt-1.5 text-sm text-[#027A48]">
+                                    <p role="status" className="mt-1.5 text-sm text-ok">
                                         {usernameNotice}
                                     </p>
                                 ) : null}
@@ -611,12 +684,12 @@ export default function ProfilePage() {
                             </div>
 
                             {saveError ? (
-                                <p role="alert" className="text-sm text-[#C33F45]">
+                                <p role="alert" className="text-sm text-bad">
                                     {saveError}
                                 </p>
                             ) : null}
                             {saveMessage ? (
-                                <p role="status" className="text-sm text-[#027A48]">
+                                <p role="status" className="text-sm text-ok">
                                     {saveMessage}
                                 </p>
                             ) : null}
@@ -634,41 +707,76 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-6">
                         {/* Connected sign-in methods */}
                         <section className={cardClass}>
-                            <h2 className="text-lg font-semibold text-[#101828]">
+                            <h2 className="text-lg font-semibold text-ink">
                                 Sign-in methods
                             </h2>
-                            <p className="mt-1 text-sm text-[#647087]">
+                            <p className="mt-1 text-sm text-ink-500">
                                 Status is verified by the server based on the
                                 credentials stored for your account.
                             </p>
 
                             <ul className="mt-4 space-y-3">
-                                <li className="flex items-center justify-between rounded-lg border border-[#EEF0F3] px-4 py-3">
-                                    <span className="text-sm font-medium text-[#101828]">
-                                        Email &amp; password
-                                    </span>
-                                    <span
-                                        className={`text-xs font-semibold ${
-                                            profile.providers.password
-                                                ? "text-[#027A48]"
-                                                : "text-[#667085]"
-                                        }`}
-                                    >
-                                        {profile.providers.password
-                                            ? "Enabled"
-                                            : "Not set"}
-                                    </span>
-                                </li>
-                                <li className="rounded-lg border border-[#EEF0F3] px-4 py-3">
+                                <li className="rounded-lg border border-line-soft px-4 py-3">
                                     <div className="flex items-center justify-between gap-3">
-                                        <span className="text-sm font-medium text-[#101828]">
+                                        <span className="text-sm font-medium text-ink">
+                                            Email &amp; password
+                                        </span>
+                                        <span
+                                            className={`text-xs font-semibold ${
+                                                profile.providers.password
+                                                    ? "text-ok"
+                                                    : "text-ink-500"
+                                            }`}
+                                        >
+                                            {profile.providers.password
+                                                ? "Enabled"
+                                                : "Not set"}
+                                        </span>
+                                    </div>
+
+                                    {setupNotice ? (
+                                        <p
+                                            role="status"
+                                            className="mt-2 text-xs text-ok"
+                                        >
+                                            {setupNotice}
+                                        </p>
+                                    ) : null}
+
+                                    {/* Google-linked accounts have no local
+                                        password yet — offer the setup flow
+                                        right where the status reads "Not set". */}
+                                    {!profile.providers.password &&
+                                    profile.providers.google ? (
+                                        <div className="mt-3">
+                                            <p className="mb-2.5 text-xs leading-5 text-ink-500">
+                                                Add a password so you can also
+                                                sign in with{" "}
+                                                <span className="font-medium text-ink-700">
+                                                    {profile.email}
+                                                </span>{" "}
+                                                — Google keeps working too.
+                                            </p>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={openSetup}
+                                            >
+                                                Set email &amp; password
+                                            </Button>
+                                        </div>
+                                    ) : null}
+                                </li>
+                                <li className="rounded-lg border border-line-soft px-4 py-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm font-medium text-ink">
                                             Google
                                         </span>
                                         <span
                                             className={`text-xs font-semibold ${
                                                 profile.providers.google
-                                                    ? "text-[#027A48]"
-                                                    : "text-[#667085]"
+                                                    ? "text-ok"
+                                                    : "text-ink-500"
                                             }`}
                                         >
                                             {profile.providers.google
@@ -679,10 +787,10 @@ export default function ProfilePage() {
 
                                     {!profile.providers.google ? (
                                         <div className="mt-3">
-                                            <p className="mb-2.5 text-xs leading-5 text-[#667085]">
+                                            <p className="mb-2.5 text-xs leading-5 text-ink-500">
                                                 Link the Google account that
                                                 uses{" "}
-                                                <span className="font-medium text-[#475467]">
+                                                <span className="font-medium text-ink-700">
                                                     {profile.email}
                                                 </span>{" "}
                                                 — the emails must match.
@@ -710,7 +818,7 @@ export default function ProfilePage() {
                                             {linkMutation.isError ? (
                                                 <p
                                                     role="alert"
-                                                    className="mt-2 text-xs text-[#C33F45]"
+                                                    className="mt-2 text-xs text-bad"
                                                 >
                                                     {(linkMutation.error as {
                                                         message?: string;
@@ -727,10 +835,10 @@ export default function ProfilePage() {
                         {/* Change password */}
                         {profile.providers.password ? (
                             <section className={cardClass}>
-                                <h2 className="text-lg font-semibold text-[#101828]">
+                                <h2 className="text-lg font-semibold text-ink">
                                     Change password
                                 </h2>
-                                <p className="mt-1 text-sm text-[#647087]">
+                                <p className="mt-1 text-sm text-ink-500">
                                     Enter your current password to confirm it&apos;s
                                     you.
                                 </p>
@@ -793,14 +901,14 @@ export default function ProfilePage() {
                                     </div>
 
                                     {pwError ? (
-                                        <p role="alert" className="text-sm text-[#C33F45]">
+                                        <p role="alert" className="text-sm text-bad">
                                             {pwError}
                                         </p>
                                     ) : null}
                                     {pwMessage ? (
                                         <p
                                             role="status"
-                                            className="text-sm text-[#027A48]"
+                                            className="text-sm text-ok"
                                         >
                                             {pwMessage}
                                         </p>
@@ -818,10 +926,10 @@ export default function ProfilePage() {
                             </section>
                         ) : (
                             <section className={cardClass}>
-                                <h2 className="text-lg font-semibold text-[#101828]">
+                                <h2 className="text-lg font-semibold text-ink">
                                     Change password
                                 </h2>
-                                <p className="mt-2 text-sm text-[#647087]">
+                                <p className="mt-2 text-sm text-ink-500">
                                     This account signs in with Google, so there
                                     is no local password to change.
                                 </p>
@@ -830,6 +938,120 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* ==============================================================
+                SET EMAIL & PASSWORD MODAL (Google-linked accounts)
+
+                The shell intentionally mirrors the OTP dialogs in Signup and
+                Login: same overlay, same 414px card, same typography and
+                input styles. Every color class reads a theme token, so the
+                modal follows light/dark with no extra rules.
+               ============================================================== */}
+            {isSetupOpen ? (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6"
+                    role="presentation"
+                >
+                    <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="setup-password-title"
+                        aria-describedby="setup-password-description"
+                        className="relative w-full max-w-[414px] rounded-[20px] border border-line-soft bg-surface px-7 py-8 shadow-[0_14px_44px_rgba(20,27,42,0.12)] sm:px-9"
+                    >
+                        <button
+                            type="button"
+                            aria-label="Close modal"
+                            onClick={closeSetup}
+                            className="absolute right-4 top-4 rounded-lg p-1 text-ink-500 hover:bg-grey-50 hover:text-ink"
+                        >
+                            ✕
+                        </button>
+
+                        <h2
+                            id="setup-password-title"
+                            className="text-center font-sans text-[20px] font-semibold leading-6 tracking-[-0.02em] text-ink"
+                        >
+                            Set email &amp; password
+                        </h2>
+                        <p
+                            id="setup-password-description"
+                            className="mt-1 text-center text-[13px] leading-5 text-ink-600"
+                        >
+                            Confirm your email and choose a password for{" "}
+                            <span className="font-mono text-ink-800">
+                                {profile.email}
+                            </span>
+                        </p>
+
+                        <form
+                            onSubmit={handleSetupPassword}
+                            className="mt-6 space-y-3"
+                        >
+                            <input
+                                ref={setupEmailRef}
+                                type="email"
+                                aria-label="Confirm your email"
+                                autoComplete="email"
+                                placeholder="Confirm email address"
+                                value={setupEmail}
+                                onChange={(event) => {
+                                    setSetupEmail(event.target.value);
+                                    setSetupError("");
+                                }}
+                                className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+                            />
+                            <input
+                                type="password"
+                                aria-label="New password"
+                                autoComplete="new-password"
+                                placeholder="New password (min. 8 characters)"
+                                value={setupPassword}
+                                onChange={(event) => {
+                                    setSetupPassword(event.target.value);
+                                    setSetupError("");
+                                }}
+                                className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+                            />
+                            <input
+                                type="password"
+                                aria-label="Confirm new password"
+                                autoComplete="new-password"
+                                placeholder="Confirm new password"
+                                value={setupConfirm}
+                                onChange={(event) => {
+                                    setSetupConfirm(event.target.value);
+                                    setSetupError("");
+                                }}
+                                className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
+                            />
+
+                            {setupError ? (
+                                <p
+                                    role="alert"
+                                    className="text-left text-xs text-bad"
+                                >
+                                    {setupError}
+                                </p>
+                            ) : null}
+
+                            <Button
+                                type="submit"
+                                fullWidth
+                                loading={setupMutation.isPending}
+                                loadingLabel="Setting password…"
+                            >
+                                Set password
+                            </Button>
+                        </form>
+
+                        <p className="mt-4 text-center text-[12px] leading-4 text-ink-500">
+                            You&apos;ll be able to sign in with either method
+                            afterwards.
+                        </p>
+                    </section>
+                </div>
+            ) : null}
         </main>
     );
 }

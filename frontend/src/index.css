@@ -2,14 +2,217 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
 @import "tailwindcss";
 
+/* --------------------------------------------------------------------------
+   Theme: class-based dark mode on <html class="dark">.
+   Every color utility reads a CSS variable that `.dark` redefines, so a single
+   class flip re-themes the whole app (and can be animated).
+   -------------------------------------------------------------------------- */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+    color-scheme: light;
+
+    /* Surfaces */
+    --c-canvas: #f7f8fa;
+    --c-surface: #ffffff;
+    --c-grey-25: #f8f9fb;
+    --c-grey-50: #f1f3f6;
+    --c-line-soft: #eef0f3;
+    --c-grey-100: #e8ebf0;
+    --c-line: #dce1e8;
+    --c-line-mid: #747d8b;
+    --c-panel: #020407; /* brand panels stay black in both themes */
+
+    /* Ink (text / icons) */
+    --c-ink: #101828;
+    --c-ink-800: #30394b;
+    --c-ink-700: #475467;
+    --c-ink-600: #536078;
+    --c-ink-500: #647087;
+    --c-ink-400: #98a2b3;
+
+    /* Brand */
+    --c-brand: #2862f4;
+    --c-brand-text: #2862f4;
+    --c-brand-strong: #1457e8;
+    --c-brand-link: #0f45bd;
+    --c-brand-alt: #2563eb;
+    --c-brand-alt-solid: #2563eb;
+    --c-brand-hover: #1f55dc;
+    --c-brand-active: #194bcb;
+    --c-brand-soft: #eff4ff;
+
+    /* Semantic */
+    --c-ok: #027a48;
+    --c-ok-bright: #2ead79;
+    --c-ok-solid: #2ead79;
+    --c-ok-soft: #ecfdf3;
+    --c-ok-soft-2: #d1fadf;
+    --c-ok-line: #abefc6;
+    --c-bad: #c33f45;
+    --c-bad-bright: #d94a4a;
+    --c-bad-strong: #b42318;
+    --c-bad-solid: #d94a4a;
+    --c-bad-line: #dc5555;
+    --c-bad-line-2: #fecdc9;
+    --c-bad-badge: #fecdca;
+    --c-bad-soft: #fef3f2;
+    --c-bad-soft-2: #fee4e2;
+    --c-warn: #d99127;
+    --c-warn-solid: #d99127;
+    --c-warn-strong: #b54708;
+    --c-warn-soft: #fffaeb;
+}
+
+.dark {
+    color-scheme: dark;
+
+    /* Surfaces */
+    --c-canvas: #0b101a;
+    --c-surface: #121826;
+    --c-grey-25: #151c28;
+    --c-grey-50: #1a2130;
+    --c-line-soft: #1d2432;
+    --c-grey-100: #232b3b;
+    --c-line: #2e384a;
+    --c-line-mid: #3a4356;
+
+    /* Ink (inverted) */
+    --c-ink: #e9eef9;
+    --c-ink-800: #c9d3e3;
+    --c-ink-700: #b6c2d5;
+    --c-ink-600: #a3b0c7;
+    --c-ink-500: #8f9cb2;
+    --c-ink-400: #78859b;
+
+    /* Brand — fills keep their contrast against white text, text tokens
+       lighten so links stay legible on dark surfaces. */
+    --c-brand-text: #7fa6ff;
+    --c-brand-strong: #8fb4ff;
+    --c-brand-link: #7fa6ff;
+    --c-brand-alt: #7fa6ff;
+    --c-brand-alt-solid: #2563eb;
+    --c-brand-hover: #2f6ae8;
+    --c-brand-active: #2159d6;
+    --c-brand-soft: #0f1b33;
+
+    /* Semantic — text/tint lighten, solid fills deepen */
+    --c-ok: #6ce9a6;
+    --c-ok-bright: #61d48d;
+    --c-ok-solid: #17b26a;
+    --c-ok-soft: #0f2a1e;
+    --c-ok-soft-2: #123527;
+    --c-ok-line: #1c4b34;
+    --c-bad: #ff9ca0;
+    --c-bad-bright: #ff8b8b;
+    --c-bad-strong: #ffa8a1;
+    --c-bad-solid: #e5484d;
+    --c-bad-line: #f97066;
+    --c-bad-line-2: #55242a;
+    --c-bad-badge: #4a1f24;
+    --c-bad-soft: #33151a;
+    --c-bad-soft-2: #36161b;
+    --c-warn: #f0b457;
+    --c-warn-solid: #e5a33b;
+    --c-warn-strong: #f5c06a;
+    --c-warn-soft: #33240c;
+}
+
+/* Expose the variables as Tailwind color utilities (bg-canvas, text-ink, …).
+   `inline` keeps `var(--c-*)` in the output so the `.dark` overrides apply. */
+@theme inline {
+    --color-canvas: var(--c-canvas);
+    --color-surface: var(--c-surface);
+    --color-grey-25: var(--c-grey-25);
+    --color-grey-50: var(--c-grey-50);
+    --color-line-soft: var(--c-line-soft);
+    --color-grey-100: var(--c-grey-100);
+    --color-line: var(--c-line);
+    --color-line-mid: var(--c-line-mid);
+    --color-panel: var(--c-panel);
+
+    --color-ink: var(--c-ink);
+    --color-ink-800: var(--c-ink-800);
+    --color-ink-700: var(--c-ink-700);
+    --color-ink-600: var(--c-ink-600);
+    --color-ink-500: var(--c-ink-500);
+    --color-ink-400: var(--c-ink-400);
+
+    --color-brand: var(--c-brand);
+    --color-brand-text: var(--c-brand-text);
+    --color-brand-strong: var(--c-brand-strong);
+    --color-brand-link: var(--c-brand-link);
+    --color-brand-alt: var(--c-brand-alt);
+    --color-brand-alt-solid: var(--c-brand-alt-solid);
+    --color-brand-hover: var(--c-brand-hover);
+    --color-brand-active: var(--c-brand-active);
+    --color-brand-soft: var(--c-brand-soft);
+
+    --color-ok: var(--c-ok);
+    --color-ok-bright: var(--c-ok-bright);
+    --color-ok-solid: var(--c-ok-solid);
+    --color-ok-soft: var(--c-ok-soft);
+    --color-ok-soft-2: var(--c-ok-soft-2);
+    --color-ok-line: var(--c-ok-line);
+    --color-bad: var(--c-bad);
+    --color-bad-bright: var(--c-bad-bright);
+    --color-bad-strong: var(--c-bad-strong);
+    --color-bad-solid: var(--c-bad-solid);
+    --color-bad-line: var(--c-bad-line);
+    --color-bad-line-2: var(--c-bad-line-2);
+    --color-bad-badge: var(--c-bad-badge);
+    --color-bad-soft: var(--c-bad-soft);
+    --color-bad-soft-2: var(--c-bad-soft-2);
+    --color-warn: var(--c-warn);
+    --color-warn-solid: var(--c-warn-solid);
+    --color-warn-strong: var(--c-warn-strong);
+    --color-warn-soft: var(--c-warn-soft);
+}
+
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 .font-inter {
-  font-family: "Inter", sans-serif;
+    font-family: "Inter", sans-serif;
 }
 
 .font-jetbrains {
-  font-family: "JetBrains Mono", monospace;
+    font-family: "JetBrains Mono", monospace;
+}
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        background-color: var(--c-canvas);
+        color: var(--c-ink);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Theme cross-fade.
+
+   Applied only for the duration of a toggle (see `store/theme.store.ts`), so
+   switching light/dark fades backgrounds, text, borders, icons and shadows
+   together instead of snapping. Disabled for reduced-motion users.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+    html.theme-fade,
+    html.theme-fade *,
+    html.theme-fade *::before,
+    html.theme-fade *::after {
+        transition:
+            background-color 400ms ease,
+            border-color 400ms ease,
+            color 400ms ease,
+            fill 400ms ease,
+            stroke 400ms ease,
+            box-shadow 400ms ease,
+            outline-color 400ms ease,
+            transform 400ms ease !important;
+        transition-delay: 0ms !important;
+    }
 }

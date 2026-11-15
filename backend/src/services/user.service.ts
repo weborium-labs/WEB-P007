@@ -3,9 +3,15 @@ import bcrypt from "bcryptjs";
 import { Prisma, type User } from "../generated/prisma/client.js";
 import { prisma } from "../lib/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
+import { emailService } from "./email.service.js";
+import {
+    getSigninMethodAddedEmailTemplate,
+    getUsernameChangedEmailTemplate,
+} from "../utils/emailTemplates.js";
 import { toPublicUser } from "./auth.service.js";
 import type {
     ChangePasswordInput,
+    SetPasswordInput,
     UpdateProfileInput,
 } from "../validators/user.validator.js";
 
@@ -132,11 +138,44 @@ export const updateProfile = async (
     }
     if (input.photoUrl !== undefined) data.photoUrl = input.photoUrl;
 
+    // A username change is confirmed by email, and the UPDATE below overwrites
+    // the old value — so it is read only on the path that can actually change
+    // it. The read is advisory (display only), never an availability check.
+    const previousUsername =
+        input.username !== undefined
+            ? (
+                  await prisma.user.findUnique({
+                      where: { id: userId },
+                      select: { username: true },
+                  })
+              )?.username
+            : undefined;
+
     try {
         const user = await prisma.user.update({
             where: { id: userId },
             data,
         });
+
+        // Confirmation email is fire-and-forget: a mail hiccup must never fail
+        // an otherwise successful profile update (same rule as the welcome mail).
+        if (
+            previousUsername !== undefined &&
+            previousUsername !== user.username
+        ) {
+            emailService
+                .sendEmail(
+                    user.email,
+                    "Your Weborium Labs username was changed",
+                    getUsernameChangedEmailTemplate({
+                        previousUsername,
+                        newUsername: user.username,
+                    }),
+                )
+                .catch((err) =>
+                    console.error("[Username Changed Email Error]:", err),
+                );
+        }
 
         return buildUserProfile(user);
     } catch (error) {
@@ -226,4 +265,70 @@ export const changePassword = async (
         where: { id: userId },
         data: { password: hashedPassword },
     });
+};
+
+/**
+ * Sets the first local password on a Google-linked account so the user can
+ * sign in with email & password as well as Google.
+ *
+ * Guards (all server-side, never delegated to the client):
+ *  - the account must exist and must not already have a password;
+ *  - the account must be Google-linked — this endpoint exists for that case,
+ *    not as a back door around the change-password flow;
+ *  - the confirmed email must match the stored account email (case-insensitive);
+ *  - the password is hashed with the same cost (12) as every other flow.
+ *
+ * On success a "new sign-in method" confirmation email is sent fire-and-forget
+ * (a mail hiccup must not roll back the credential write).
+ */
+export const setPassword = async (
+    userId: string,
+    input: SetPasswordInput,
+): Promise<UserProfile> => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+        throw new ApiError(404, "Account not found.");
+    }
+
+    if (user.password !== null) {
+        throw new ApiError(
+            409,
+            "A password is already set for this account.",
+            [{ code: "PASSWORD_ALREADY_SET" }],
+        );
+    }
+
+    if (user.googleId === null) {
+        throw new ApiError(
+            400,
+            "Only Google-linked accounts can set a password here.",
+            [{ code: "PASSWORD_SETUP_NOT_AVAILABLE" }],
+        );
+    }
+
+    if (user.email.toLowerCase() !== input.email) {
+        throw new ApiError(400, "Email does not match this account.", [
+            { code: "EMAIL_MISMATCH" },
+        ]);
+    }
+
+    const hashedPassword = await bcrypt.hash(input.password, 12);
+
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+    });
+
+    emailService
+        .sendEmail(
+            user.email,
+            "A new sign-in method was added to your account",
+            getSigninMethodAddedEmailTemplate({ username: user.username }),
+        )
+        .catch((err) =>
+            console.error("[Sign-in Method Added Email Error]:", err),
+        );
+
+    return buildUserProfile(updatedUser);
 };

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     changePasswordSchema,
+    setPasswordSchema,
     updateProfileSchema,
 } from "../src/validators/user.validator.js";
 
@@ -9,6 +10,7 @@ const parseProfile = (body: unknown) =>
     updateProfileSchema.body.safeParse(body);
 const parsePassword = (body: unknown) =>
     changePasswordSchema.body.safeParse(body);
+const parseSetup = (body: unknown) => setPasswordSchema.body.safeParse(body);
 
 describe("updateProfileSchema", () => {
     it("accepts a phone-only update", () => {
@@ -194,5 +196,58 @@ describe("changePasswordSchema", () => {
         expect(parsePassword({ ...valid, currentPassword: "" }).success).toBe(
             false,
         );
+    });
+});
+
+describe("setPasswordSchema", () => {
+    const valid = {
+        email: "intern@example.com",
+        password: "NewPass123",
+        confirmPassword: "NewPass123",
+    };
+
+    it("accepts a valid setup", () => {
+        expect(parseSetup(valid).success).toBe(true);
+    });
+
+    it("normalizes the confirmed email", () => {
+        const result = parseSetup({ ...valid, email: "  Intern@Example.COM " });
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.email).toBe("intern@example.com");
+        }
+    });
+
+    it("rejects a malformed email", () => {
+        expect(parseSetup({ ...valid, email: "not-an-email" }).success).toBe(
+            false,
+        );
+    });
+
+    it("rejects a weak password", () => {
+        expect(parseSetup({ ...valid, password: "short" }).success).toBe(
+            false,
+        );
+    });
+
+    it("rejects a password missing an uppercase letter", () => {
+        expect(
+            parseSetup({
+                ...valid,
+                password: "newpass123",
+                confirmPassword: "newpass123",
+            }).success,
+        ).toBe(false);
+    });
+
+    it("rejects mismatched confirmation", () => {
+        expect(
+            parseSetup({ ...valid, confirmPassword: "OtherPass123" }).success,
+        ).toBe(false);
+    });
+
+    it("rejects unknown extra fields", () => {
+        expect(parseSetup({ ...valid, role: "ADMIN" }).success).toBe(false);
     });
 });

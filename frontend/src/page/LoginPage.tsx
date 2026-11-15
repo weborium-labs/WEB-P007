@@ -13,10 +13,13 @@ import GoogleIcon from "../assets/GoogleIcon.svg";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { dashboardPathForRole } from "../lib/routes";
 import { AuthPageBackdrop, AuthVisualPanel } from "./SignupPage";
+import type { ApiClientError } from "../api/apiClient";
 import {
     useForgotPasswordMutation,
     useLoginMutation,
+    useResendOtpMutation,
     useResetPasswordMutation,
+    useVerifyOtpMutation,
     useVerifyResetOtpMutation,
 } from "../hooks/useAuthMutations";
 
@@ -41,18 +44,38 @@ export default function Login() {
     const [modalError, setModalError] = useState("");
     const [modalSuccess, setModalSuccess] = useState("");
 
+    // Email-verification flow: login answered 403 EMAIL_NOT_VERIFIED after the
+    // password was correct. The OTP that was just emailed is entered here, and
+    // a successful verify *is* a login (the endpoint returns tokens).
+    const [isVerifyOpen, setIsVerifyOpen] = useState(false);
+    const [verifyEmail, setVerifyEmail] = useState("");
+    const [verifyDigits, setVerifyDigits] = useState(["", "", "", ""]);
+    const [verifyError, setVerifyError] = useState("");
+    const [verifySuccess, setVerifySuccess] = useState("");
+
     const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+    const verifyRefs = useRef<Array<HTMLInputElement | null>>([]);
 
     const loginMutation = useLoginMutation();
     const forgotMutation = useForgotPasswordMutation();
     const verifyResetOtpMutation = useVerifyResetOtpMutation();
     const resetPasswordMutation = useResetPasswordMutation();
+    const verifyOtpMutation = useVerifyOtpMutation();
+    const resendVerifyMutation = useResendOtpMutation();
 
     useEffect(() => {
         if (resetStep === "otp") {
             otpRefs.current[0]?.focus();
         }
     }, [resetStep]);
+
+    // Same DOM sync as the reset OTP step: focus the first box when the
+    // verification modal opens (autoFocus only applies on first mount).
+    useEffect(() => {
+        if (isVerifyOpen) {
+            verifyRefs.current[0]?.focus();
+        }
+    }, [isVerifyOpen]);
 
     const handleLogin = async (e: FormEvent) => {
         e.preventDefault();
@@ -71,8 +94,31 @@ export default function Login() {
             // Role-based landing: each role goes to its own dashboard.
             navigate(dashboardPathForRole(user.role), { replace: true });
         } catch (err: unknown) {
-            const msg = (err as { message?: string })?.message || "Invalid credentials.";
-            setFormError(msg);
+            const apiError = err as Partial<ApiClientError>;
+
+            // Password was correct but the account is unverified: the backend
+            // already emailed a fresh OTP — open the modal so the user can act
+            // on it immediately instead of just reading the message.
+            if (apiError.status === 403 && apiError.code === "EMAIL_NOT_VERIFIED") {
+                const emailForVerification = identifier.includes("@")
+                    ? identifier.trim().toLowerCase()
+                    : (apiError.email ?? "");
+
+                setFormError(apiError.message || "Email not verified.");
+
+                if (emailForVerification) {
+                    setVerifyEmail(emailForVerification);
+                    setVerifyDigits(["", "", "", ""]);
+                    setVerifyError("");
+                    setVerifySuccess("");
+                    setIsVerifyOpen(true);
+                }
+                return;
+            }
+
+            setFormError(
+                apiError.message || "Invalid credentials.",
+            );
         }
     };
 
@@ -87,9 +133,10 @@ export default function Login() {
             return;
         }
 
-        // Role only matters when this Google identity creates a new account;
-        // existing accounts resolve by googleId regardless of role.
-        window.location.href = `${baseUri}?role=Intern`;
+        // No role travels with the request: a brand-new Google account is
+        // paused after authentication and picks its role on the next screen.
+        // Existing accounts resolve by googleId regardless of any role.
+        window.location.href = baseUri;
     };
 
     // Step 1: Send Reset OTP
@@ -192,8 +239,87 @@ export default function Login() {
         }
     };
 
+    /* ------------------ Verify email (login was blocked) ------------------ */
+
+    // A successful verify-otp *is* a login: the endpoint marks the account
+    // verified, issues tokens and the mutation stores the session.
+    const submitVerifyOtp = async (code: string) => {
+        setVerifyError("");
+        setVerifySuccess("");
+
+        try {
+            const { user } = await verifyOtpMutation.mutateAsync({
+                email: verifyEmail,
+                otp: code,
+            });
+            setIsVerifyOpen(false);
+            navigate(dashboardPathForRole(user.role), { replace: true });
+        } catch (err: unknown) {
+            setVerifyError(
+                (err as { message?: string })?.message || "Invalid OTP code.",
+            );
+        }
+    };
+
+    const handleVerifyDigitChange = (index: number, raw: string) => {
+        const digit = raw.replace(/\D/g, "").slice(-1);
+        const next = [...verifyDigits];
+        next[index] = digit;
+        setVerifyDigits(next);
+        setVerifyError("");
+        setVerifySuccess("");
+
+        if (digit && index < 3) {
+            verifyRefs.current[index + 1]?.focus();
+        }
+        if (next.every(Boolean)) {
+            void submitVerifyOtp(next.join(""));
+        }
+    };
+
+    const handleVerifyDigitKeyDown = (
+        index: number,
+        e: KeyboardEvent<HTMLInputElement>,
+    ) => {
+        if (e.key === "Backspace" && !verifyDigits[index] && index > 0) {
+            verifyRefs.current[index - 1]?.focus();
+        }
+    };
+
+    const handleVerifyDigitPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+        const pasted = e.clipboardData
+            .getData("text")
+            .replace(/\D/g, "")
+            .slice(0, 4);
+        if (!pasted) return;
+        e.preventDefault();
+        const next = ["", "", "", ""];
+        pasted.split("").forEach((d, i) => {
+            next[i] = d;
+        });
+        setVerifyDigits(next);
+        setVerifyError("");
+        setVerifySuccess("");
+        if (pasted.length === 4) void submitVerifyOtp(pasted);
+    };
+
+    const handleResendVerify = async () => {
+        setVerifyError("");
+        setVerifySuccess("");
+
+        try {
+            await resendVerifyMutation.mutateAsync(verifyEmail);
+            setVerifySuccess("A new code has been sent to your email.");
+        } catch (err: unknown) {
+            setVerifyError(
+                (err as { message?: string })?.message ||
+                    "Could not send a new code.",
+            );
+        }
+    };
+
     return (
-        <div className="relative isolate min-h-[100svh] w-full overflow-x-hidden bg-[#020407] font-sans text-[#141B2A] lg:bg-[#F7F8FA]">
+        <div className="relative isolate min-h-[100svh] w-full overflow-x-hidden bg-panel font-sans text-ink lg:bg-canvas">
             <AuthPageBackdrop mode="login" />
 
             <div className="relative z-10 mx-auto flex min-h-[100svh] flex-col p-0 lg:grid lg:grid-cols-[60%_40%] lg:gap-0 lg:p-2">
@@ -205,13 +331,13 @@ export default function Login() {
                 />
 
                 {/* Left Form Panel on Desktop */}
-                <main className="relative z-10 -mt-2 mx-2 mb-2 flex min-h-[calc(100svh-288px)] flex-1 flex-col items-center justify-start rounded-2xl bg-[#F7F8FA] px-6 pb-10 pt-7 sm:min-h-[calc(100svh-256px)] sm:px-10 sm:pt-12 lg:col-start-1 lg:row-start-1 lg:mx-0 lg:my-0 lg:mt-0 lg:min-h-0 lg:justify-center lg:rounded-none lg:px-8 lg:py-10">
+                <main className="relative z-10 -mt-2 mx-2 mb-2 flex min-h-[calc(100svh-288px)] flex-1 flex-col items-center justify-start rounded-2xl bg-canvas px-6 pb-10 pt-7 sm:min-h-[calc(100svh-256px)] sm:px-10 sm:pt-12 lg:col-start-1 lg:row-start-1 lg:mx-0 lg:my-0 lg:mt-0 lg:min-h-0 lg:justify-center lg:rounded-none lg:px-8 lg:py-10">
                     <div className="w-full max-w-[540px]">
                         <header className="text-center">
-                            <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-[#141B2A] sm:text-[36px] lg:text-[40px]">
+                            <h1 className="text-[30px] font-bold leading-[1.2] tracking-[-0.035em] text-ink sm:text-[36px] lg:text-[40px]">
                                 Login to your account
                             </h1>
-                            <p className="mt-2 text-[14px] font-semibold leading-5 text-[#536078] sm:text-[15px]">
+                            <p className="mt-2 text-[14px] font-semibold leading-5 text-ink-600 sm:text-[15px]">
                                 Pick up where you left off.
                             </p>
                         </header>
@@ -227,7 +353,7 @@ export default function Login() {
                                         setIdentifier(e.target.value);
                                         setFormError("");
                                     }}
-                                    className="h-[46px] w-full rounded-xl border border-[#E8EBF0] bg-white px-4 text-[14px] text-[#141B2A] outline-none placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10"
+                                    className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
                                 />
 
                                 <input
@@ -239,12 +365,12 @@ export default function Login() {
                                         setPassword(e.target.value);
                                         setFormError("");
                                     }}
-                                    className="h-[46px] w-full rounded-xl border border-[#E8EBF0] bg-white px-4 text-[14px] text-[#141B2A] outline-none placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10"
+                                    className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
                                 />
                             </div>
 
                             {formError ? (
-                                <p role="alert" className="mx-auto mt-3 max-w-[440px] text-left text-[13px] text-[#C33F45]">
+                                <p role="alert" className="mx-auto mt-3 max-w-[440px] text-left text-[13px] text-bad">
                                     {formError}
                                 </p>
                             ) : null}
@@ -265,7 +391,7 @@ export default function Login() {
                                     Continue with Email
                                 </Button>
 
-                                <span className="my-0.5 text-center text-[12px] text-[#98A2B3] sm:my-0">
+                                <span className="my-0.5 text-center text-[12px] text-ink-400 sm:my-0">
                                     or
                                 </span>
 
@@ -282,7 +408,7 @@ export default function Login() {
                                 </Button>
                             </div>
 
-                            <div className="mt-6 pt-1 text-center text-[13px] leading-5 text-[#647087]">
+                            <div className="mt-6 pt-1 text-center text-[13px] leading-5 text-ink-500">
                                 <p>
                                     <button
                                         type="button"
@@ -292,7 +418,7 @@ export default function Login() {
                                             setResetEmail(identifier.includes("@") ? identifier : "");
                                             setResetStep("email");
                                         }}
-                                        className="font-medium text-[#1457E8] underline underline-offset-2 hover:cursor-pointer hover:text-[#0F45BD]"
+                                        className="font-medium text-brand-strong underline underline-offset-2 hover:cursor-pointer hover:text-brand-link"
                                     >
                                         Forgot password?
                                     </button>
@@ -302,7 +428,7 @@ export default function Login() {
                                     <button
                                         type="button"
                                         onClick={() => navigate("/signup")}
-                                        className="font-medium text-[#1457E8] underline underline-offset-2 hover:cursor-pointer hover:text-[#0F45BD]"
+                                        className="font-medium text-brand-strong underline underline-offset-2 hover:cursor-pointer hover:text-brand-link"
                                     >
                                         Sign up
                                     </button>
@@ -324,14 +450,14 @@ export default function Login() {
                     <section
                         role="dialog"
                         aria-modal="true"
-                        className="relative w-full max-w-[414px] rounded-[20px] border border-[#EEF0F3] bg-white px-7 py-8 shadow-[0_14px_44px_rgba(20,27,42,0.14)] sm:px-9"
+                        className="relative w-full max-w-[414px] rounded-[20px] border border-line-soft bg-surface px-7 py-8 shadow-[0_14px_44px_rgba(20,27,42,0.14)] sm:px-9"
                     >
                         {/* Close button */}
                         <button
                             type="button"
                             aria-label="Close modal"
                             onClick={() => setResetStep(null)}
-                            className="absolute right-4 top-4 rounded-lg p-1 text-[#647087] hover:bg-[#F1F3F6] hover:text-[#141B2A]"
+                            className="absolute right-4 top-4 rounded-lg p-1 text-ink-500 hover:bg-grey-50 hover:text-ink"
                         >
                             ✕
                         </button>
@@ -339,10 +465,10 @@ export default function Login() {
                         {/* STEP 1: ENTER EMAIL */}
                         {resetStep === "email" && (
                             <form onSubmit={handleSendResetOtp}>
-                                <h2 className="text-center text-[20px] font-semibold tracking-[-0.02em] text-[#141B2A]">
+                                <h2 className="text-center text-[20px] font-semibold tracking-[-0.02em] text-ink">
                                     Please enter your email address
                                 </h2>
-                                <p className="mt-1 text-center text-[13px] text-[#536078]">
+                                <p className="mt-1 text-center text-[13px] text-ink-600">
                                     A code will be sent to your email address
                                 </p>
 
@@ -355,12 +481,12 @@ export default function Login() {
                                             setResetEmail(e.target.value);
                                             setModalError("");
                                         }}
-                                        className="h-[46px] w-full rounded-xl border border-[#E8EBF0] bg-white px-4 text-[14px] text-[#141B2A] outline-none placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10"
+                                        className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
                                     />
                                 </div>
 
                                 {modalError ? (
-                                    <p className="mt-2 text-left text-xs text-[#C33F45]">{modalError}</p>
+                                    <p className="mt-2 text-left text-xs text-bad">{modalError}</p>
                                 ) : null}
 
                                 <div className="mt-5">
@@ -374,7 +500,7 @@ export default function Login() {
                                     </Button>
                                 </div>
 
-                                <div className="mt-4 flex items-start gap-2 text-left text-[12px] leading-4 text-[#2862F4]">
+                                <div className="mt-4 flex items-start gap-2 text-left text-[12px] leading-4 text-brand-text">
                                     <span className="mt-0.5 shrink-0">ⓘ</span>
                                     <span>Once code sent, you must complete the password reset.</span>
                                 </div>
@@ -384,12 +510,12 @@ export default function Login() {
                         {/* STEP 2: VERIFY 4-DIGIT OTP */}
                         {resetStep === "otp" && (
                             <div>
-                                <h2 className="text-center text-[20px] font-semibold tracking-[-0.02em] text-[#141B2A]">
+                                <h2 className="text-center text-[20px] font-semibold tracking-[-0.02em] text-ink">
                                     Please check your email address
                                 </h2>
-                                <p className="mt-1 text-center text-[13px] text-[#536078]">
+                                <p className="mt-1 text-center text-[13px] text-ink-600">
                                     We&apos;ve sent a code to{" "}
-                                    <span className="font-mono text-[#30394B]">{resetEmail}</span>
+                                    <span className="font-mono text-ink-800">{resetEmail}</span>
                                 </p>
 
                                 <div className="mt-6 flex items-center justify-center gap-3">
@@ -406,16 +532,16 @@ export default function Login() {
                                             onChange={(e) => handleDigitChange(i, e.target.value)}
                                             onKeyDown={(e) => handleDigitKeyDown(i, e)}
                                             onPaste={i === 0 ? handleDigitPaste : undefined}
-                                            className="h-12 w-11 rounded-xl border border-transparent bg-[#F1F3F6] text-center font-mono text-[16px] text-[#141B2A] outline-none transition focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10"
+                                            className="h-12 w-11 rounded-xl border border-transparent bg-grey-50 text-center font-mono text-[16px] text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
                                         />
                                     ))}
                                 </div>
 
                                 <div className="mt-4 flex min-h-5 items-center justify-center">
                                     {verifyResetOtpMutation.isPending ? (
-                                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#2862F4] border-r-transparent" />
+                                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-r-transparent" />
                                     ) : modalError ? (
-                                        <p className="text-center text-[13px] font-medium text-[#D94A4A]">
+                                        <p className="text-center text-[13px] font-medium text-bad-bright">
                                             {modalError}
                                         </p>
                                     ) : null}
@@ -424,7 +550,7 @@ export default function Login() {
                                 <button
                                     type="button"
                                     onClick={() => forgotMutation.mutate(resetEmail.trim())}
-                                    className="mt-2 block w-full text-center text-[13px] font-medium text-[#2862F4] underline underline-offset-2"
+                                    className="mt-2 block w-full text-center text-[13px] font-medium text-brand-text underline underline-offset-2"
                                 >
                                     Resend code
                                 </button>
@@ -434,12 +560,12 @@ export default function Login() {
                         {/* STEP 3: NEW PASSWORD */}
                         {resetStep === "new-password" && (
                             <form onSubmit={handleCompleteReset}>
-                                <h2 className="text-center text-[20px] font-semibold tracking-[-0.02em] text-[#141B2A]">
+                                <h2 className="text-center text-[20px] font-semibold tracking-[-0.02em] text-ink">
                                     Set a new password
                                 </h2>
-                                <p className="mt-1 text-center text-[13px] text-[#536078]">
+                                <p className="mt-1 text-center text-[13px] text-ink-600">
                                     Create a strong password for{" "}
-                                    <span className="font-mono text-[#30394B]">{resetEmail}</span>
+                                    <span className="font-mono text-ink-800">{resetEmail}</span>
                                 </p>
 
                                 <div className="mt-6 space-y-3">
@@ -451,7 +577,7 @@ export default function Login() {
                                             setNewPassword(e.target.value);
                                             setModalError("");
                                         }}
-                                        className="h-[46px] w-full rounded-xl border border-[#E8EBF0] bg-white px-4 text-[14px] text-[#141B2A] outline-none placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10"
+                                        className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
                                     />
                                     <input
                                         type="password"
@@ -461,15 +587,15 @@ export default function Login() {
                                             setConfirmNewPassword(e.target.value);
                                             setModalError("");
                                         }}
-                                        className="h-[46px] w-full rounded-xl border border-[#E8EBF0] bg-white px-4 text-[14px] text-[#141B2A] outline-none placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10"
+                                        className="h-[46px] w-full rounded-xl border border-grey-100 bg-surface px-4 text-[14px] text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10"
                                     />
                                 </div>
 
                                 {modalError ? (
-                                    <p className="mt-2 text-left text-xs text-[#C33F45]">{modalError}</p>
+                                    <p className="mt-2 text-left text-xs text-bad">{modalError}</p>
                                 ) : null}
                                 {modalSuccess ? (
-                                    <p className="mt-2 text-center text-xs font-medium text-[#2EAD79]">
+                                    <p className="mt-2 text-center text-xs font-medium text-ok-bright">
                                         {modalSuccess}
                                     </p>
                                 ) : null}
@@ -486,6 +612,109 @@ export default function Login() {
                                 </div>
                             </form>
                         )}
+                    </section>
+                </div>
+            ) : null}
+
+            {/* ==============================================================
+                EMAIL VERIFICATION MODAL (login blocked with EMAIL_NOT_VERIFIED)
+
+                Same shell as the reset-password modal above: same overlay,
+                414px card, heading and OTP box styles — every color class
+                reads a theme token, so light/dark applies with no extra rules.
+               ============================================================== */}
+            {isVerifyOpen ? (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 py-6"
+                    role="presentation"
+                >
+                    <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="verify-email-title"
+                        aria-describedby="verify-email-description"
+                        className="relative w-full max-w-[414px] rounded-[20px] border border-line-soft bg-surface px-7 py-8 shadow-[0_14px_44px_rgba(20,27,42,0.14)] sm:px-9"
+                    >
+                        <button
+                            type="button"
+                            aria-label="Close modal"
+                            onClick={() => setIsVerifyOpen(false)}
+                            className="absolute right-4 top-4 rounded-lg p-1 text-ink-500 hover:bg-grey-50 hover:text-ink"
+                        >
+                            ✕
+                        </button>
+
+                        <h2
+                            id="verify-email-title"
+                            className="text-center text-[20px] font-semibold tracking-[-0.02em] text-ink"
+                        >
+                            Please check your email address
+                        </h2>
+                        <p
+                            id="verify-email-description"
+                            className="mt-1 text-center text-[13px] text-ink-600"
+                        >
+                            We&apos;ve sent a code to{" "}
+                            <span className="font-mono text-ink-800">
+                                {verifyEmail}
+                            </span>
+                        </p>
+
+                        <div className="mt-6 flex items-center justify-center gap-3">
+                            {verifyDigits.map((digit, i) => (
+                                <input
+                                    key={i}
+                                    ref={(el) => {
+                                        verifyRefs.current[i] = el;
+                                    }}
+                                    inputMode="numeric"
+                                    maxLength={1}
+                                    aria-label={`Verification code digit ${i + 1}`}
+                                    autoComplete={
+                                        i === 0 ? "one-time-code" : "off"
+                                    }
+                                    value={digit}
+                                    disabled={verifyOtpMutation.isPending}
+                                    onChange={(e) =>
+                                        handleVerifyDigitChange(i, e.target.value)
+                                    }
+                                    onKeyDown={(e) => handleVerifyDigitKeyDown(i, e)}
+                                    onPaste={i === 0 ? handleVerifyDigitPaste : undefined}
+                                    className="h-12 w-11 rounded-xl border border-transparent bg-grey-50 text-center font-mono text-[16px] text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10 disabled:opacity-70"
+                                />
+                            ))}
+                        </div>
+
+                        <div className="mt-4 flex min-h-5 items-center justify-center">
+                            {verifyOtpMutation.isPending ? (
+                                <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-r-transparent" />
+                            ) : verifyError ? (
+                                <p
+                                    role="alert"
+                                    className="text-center text-[13px] font-medium text-bad-bright"
+                                >
+                                    {verifyError}
+                                </p>
+                            ) : verifySuccess ? (
+                                <p
+                                    role="status"
+                                    className="text-center text-[13px] font-medium text-ok-bright"
+                                >
+                                    {verifySuccess}
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => void handleResendVerify()}
+                            disabled={resendVerifyMutation.isPending}
+                            className="mt-2 block w-full text-center text-[13px] font-medium text-brand-text underline underline-offset-2 disabled:opacity-60"
+                        >
+                            {resendVerifyMutation.isPending
+                                ? "Sending…"
+                                : "Resend code"}
+                        </button>
                     </section>
                 </div>
             ) : null}

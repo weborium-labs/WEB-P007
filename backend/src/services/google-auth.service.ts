@@ -15,6 +15,10 @@ import { ApiError } from "../utils/ApiError.js";
  *    rejected with ACCOUNT_EXISTS so the user can sign in and link explicitly;
  *  - rejects Google profiles whose email is not verified by Google.
  *
+ * Split into `resolveGoogleLogin` (read-only: existing vs. brand-new) and
+ * `createGoogleUser` (write: role + username + insert) so the callback can
+ * pause between the two and let a brand-new user pick a role first.
+ *
  * Failure codes (`errors[0].code`) let the OAuth callback translate errors
  * into safe frontend redirect reasons without string matching.
  */
@@ -83,17 +87,19 @@ const touchLoginActivity = (
         },
     });
 
-export const findOrCreateGoogleUser = async (
-    profile: Profile,
-    requestedRole: unknown,
-): Promise<User> => {
+export interface GoogleSignupProfile {
+    googleId: string;
+    email: string;
+    displayName: string;
+    photoUrl: string | null;
+}
+
+/** Validates the Google profile once, before any lookup or write. */
+const parseGoogleProfile = (profile: Profile): GoogleSignupProfile => {
     const googleId = profile.id;
     const email = profile.emails?.[0]?.value?.trim().toLowerCase();
     const displayName = profile.displayName?.trim();
     const photoUrl = profile.photos?.[0]?.value ?? null;
-
-    const googleEmailVerified =
-        profile._json?.email_verified === true;
 
     if (!googleId || !email || !displayName) {
         throw new ApiError(400, "Google profile is incomplete.", [
@@ -101,16 +107,38 @@ export const findOrCreateGoogleUser = async (
         ]);
     }
 
-    if (!googleEmailVerified) {
-        throw new ApiError(
-            403,
-            "Google email address is not verified.",
-            [{ code: "GOOGLE_EMAIL_UNVERIFIED" }],
-        );
+    if (profile._json?.email_verified !== true) {
+        throw new ApiError(403, "Google email address is not verified.", [
+            { code: "GOOGLE_EMAIL_UNVERIFIED" },
+        ]);
     }
 
+    return { googleId, email, displayName, photoUrl };
+};
+
+export type GoogleLoginResolution =
+    | { kind: "existing"; user: User }
+    | { kind: "new"; profile: GoogleSignupProfile };
+
+/**
+ * Resolves a Google identity **without creating anything**.
+ *
+ * Used by the OAuth callback to decide between signing an existing account in
+ * and pausing for role selection on a brand-new one:
+ *  - `googleId` match → the same account; refresh login activity and return it;
+ *  - email match → never auto-link: `ACCOUNT_EXISTS` (the original guarantee);
+ *  - neither → `new`, and the *caller* decides what role (if any) to use.
+ *
+ * Everything throws with the same codes as before, so the callback's safe
+ * redirect mapping is unaffected.
+ */
+export const resolveGoogleLogin = async (
+    profile: Profile,
+): Promise<GoogleLoginResolution> => {
+    const parsed = parseGoogleProfile(profile);
+
     const existingGoogleUser = await prisma.user.findUnique({
-        where: { googleId },
+        where: { googleId: parsed.googleId },
     });
 
     if (existingGoogleUser) {
@@ -120,11 +148,14 @@ export const findOrCreateGoogleUser = async (
             ]);
         }
 
-        return touchLoginActivity(existingGoogleUser, photoUrl);
+        return {
+            kind: "existing",
+            user: await touchLoginActivity(existingGoogleUser, parsed.photoUrl),
+        };
     }
 
     const existingEmailUser = await prisma.user.findUnique({
-        where: { email },
+        where: { email: parsed.email },
     });
 
     if (existingEmailUser) {
@@ -135,8 +166,23 @@ export const findOrCreateGoogleUser = async (
         );
     }
 
-    const role = getGoogleSignupRole(requestedRole);
+    return { kind: "new", profile: parsed };
+};
 
+/**
+ * Creates the account for an identity `resolveGoogleLogin` reported as new.
+ *
+ * Race recovery is unchanged: a concurrent creator of the *same* Google
+ * identity is picked up and returned, while an email owned by a different
+ * account still fails with `ACCOUNT_EXISTS` — this endpoint can therefore
+ * never be used to take over an existing password account.
+ */
+export const createGoogleUser = async (
+    profile: GoogleSignupProfile,
+    requestedRole: unknown,
+): Promise<User> => {
+    const { googleId, email, displayName, photoUrl } = profile;
+    const role = getGoogleSignupRole(requestedRole);
     const username = await generateUsername(displayName);
 
     try {

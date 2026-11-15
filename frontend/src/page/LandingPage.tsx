@@ -256,25 +256,25 @@ const ACTIVITY_STAGES = [
         hours: "Under 48 hours",
         state: "Active",
         body: "At least one login in the last 48 hours. No action needed.",
-        tone: "#2EAD79",
+        tone: "var(--c-ok-solid)",
     },
     {
         hours: "48 to 72 hours",
         state: "Idle",
         body: "The state is logged. The intern keeps full access.",
-        tone: "#D99127",
+        tone: "var(--c-warn-solid)",
     },
     {
         hours: "72 hours or more",
         state: "Inactive",
         body: "HR sees the intern flagged as inactive, with the change logged.",
-        tone: "#D94A4A",
+        tone: "var(--c-bad-solid)",
     },
     {
         hours: "96 hours or more",
         state: "Deactivated",
         body: "The account is disabled and login is blocked until HR or Admin reactivates it.",
-        tone: "#98A2B3",
+        tone: "var(--c-ink-400)",
     },
 ] as const;
 
@@ -617,12 +617,12 @@ function SectionHeading({
     const dark = tone === "dark";
     return (
         <div className={cn("max-w-[680px]", align === "center" ? "mx-auto text-center" : "text-left")}>
-            <p className={cn(T.mono, "uppercase", dark ? "text-[#98A2B3]" : "text-[#2862F4]")}>
+            <p className={cn(T.mono, "uppercase", dark ? "text-ink-400" : "text-brand-text")}>
                 {eyebrow}
             </p>
-            <h2 id={id} className={cn(T.heading2, "mt-3", dark ? "text-white" : "text-[#141B2A]")}>{title}</h2>
+            <h2 id={id} className={cn(T.heading2, "mt-3", dark ? "text-white" : "text-ink")}>{title}</h2>
             {body ? (
-                <p className={cn(T.body3, "mt-4", dark ? "text-[#98A2B3]" : "text-[#536078]")}>{body}</p>
+                <p className={cn(T.body3, "mt-4", dark ? "text-ink-400" : "text-ink-600")}>{body}</p>
             ) : null}
         </div>
     );
@@ -693,12 +693,12 @@ function LaunchBadge({ dark = true }: { dark?: boolean }) {
                 T.caption3,
                 dark
                     ? "border-white/20 bg-white/10 text-white"
-                    : "border-[#E8EBF0] bg-white text-[#141B2A]",
+                    : "border-grey-100 bg-surface text-ink",
             )}
         >
             <span aria-hidden="true" className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2EAD79] opacity-60 motion-reduce:hidden" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#2EAD79]" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok-solid opacity-60 motion-reduce:hidden" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-ok-solid" />
             </span>
             Launching soon · Release 1.0 in development
         </span>
@@ -739,7 +739,7 @@ function Nav({ active }: { active: string }) {
             <header className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
                 <nav
                     aria-label="Primary"
-                    className="flex w-full max-w-[960px] items-center justify-between gap-4 rounded-2xl border border-[#E8EBF0] bg-white/80 py-2 pl-3 pr-2 backdrop-blur-xl"
+                    className="flex w-full max-w-[960px] items-center justify-between gap-4 rounded-2xl border border-grey-100 bg-surface/80 py-2 pl-3 pr-2 backdrop-blur-xl"
                 >
                     <a
                         href="#top"
@@ -747,13 +747,13 @@ function Nav({ active }: { active: string }) {
                             event.preventDefault();
                             window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
-                        className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2862F4]/35"
+                        className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/35"
                         aria-label="IMS by Weborium Labs, back to top"
                     >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#ffffff] text-white">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface text-white">
                             <img src="https://i.ibb.co/S73b3Rzt/weborium-logo-8k-transparent.png" alt="weborium_labs_logo" />
                         </span>
-                        <span className={cn(T.title3, "hidden text-[#141B2A] sm:inline")}>
+                        <span className={cn(T.title3, "hidden text-ink sm:inline")}>
                             Weborium Labs
                         </span>
                     </a>
@@ -772,9 +772,9 @@ function Nav({ active }: { active: string }) {
                                         "block rounded-lg px-3 py-2 transition-colors duration-300",
                                         T.title4,
                                         active === link.id
-                                            ? "bg-[#F1F3F6] text-[#141B2A]"
-                                            : "text-[#536078] hover:bg-[#F7F8FA] hover:text-[#141B2A]",
-                                        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2862F4]/25",
+                                            ? "bg-grey-50 text-ink"
+                                            : "text-ink-600 hover:bg-canvas hover:text-ink",
+                                        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/25",
                                     )}
                                 >
                                     {link.label}
@@ -801,7 +801,7 @@ function Nav({ active }: { active: string }) {
                             aria-expanded={open}
                             aria-controls="mobile-menu"
                             onClick={() => setOpen((value) => !value)}
-                            className="relative grid h-10 w-10 place-items-center rounded-lg text-[#141B2A] transition-colors duration-300 hover:bg-[#F1F3F6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2862F4]/25 active:scale-[0.98] lg:hidden"
+                            className="relative grid h-10 w-10 place-items-center rounded-lg text-ink transition-colors duration-300 hover:bg-grey-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/25 active:scale-[0.98] lg:hidden"
                         >
                             <span
                                 aria-hidden="true"
@@ -828,7 +828,7 @@ function Nav({ active }: { active: string }) {
                 id="mobile-menu"
                 aria-hidden={!open}
                 className={cn(
-                    "fixed inset-0 z-40 flex flex-col bg-[#F7F8FA]/95 px-6 pb-10 pt-24 backdrop-blur-2xl transition-opacity duration-500 lg:hidden",
+                    "fixed inset-0 z-40 flex flex-col bg-canvas/95 px-6 pb-10 pt-24 backdrop-blur-2xl transition-opacity duration-500 lg:hidden",
                     EASE,
                     open ? "opacity-100" : "pointer-events-none opacity-0",
                 )}
@@ -856,8 +856,8 @@ function Nav({ active }: { active: string }) {
                                 className={cn(
                                     "block rounded-xl px-4 py-3",
                                     T.heading5,
-                                    active === link.id ? "bg-white text-[#2862F4]" : "text-[#141B2A]",
-                                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2862F4]/25",
+                                    active === link.id ? "bg-surface text-brand-text" : "text-ink",
+                                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/25",
                                 )}
                             >
                                 {link.label}
@@ -888,10 +888,10 @@ function Nav({ active }: { active: string }) {
    ========================================================================== */
 
 const STATE_STYLES = {
-    Active: { color: "#2EAD79", label: "Active" },
-    Idle: { color: "#D99127", label: "Idle" },
-    Inactive: { color: "#D94A4A", label: "Inactive" },
-    Deactivated: { color: "#647087", label: "Deactivated" },
+    Active: { color: "var(--c-ok-bright)", label: "Active" },
+    Idle: { color: "var(--c-warn)", label: "Idle" },
+    Inactive: { color: "var(--c-bad-bright)", label: "Inactive" },
+    Deactivated: { color: "var(--c-ink-500)", label: "Deactivated" },
 } as const;
 
 type InternState = keyof typeof STATE_STYLES;
@@ -909,7 +909,10 @@ function StatePill({ state }: { state: InternState }) {
     return (
         <span
             className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-1", T.caption4)}
-            style={{ backgroundColor: `${color}1A`, color }}
+            style={{
+                backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
+                color,
+            }}
         >
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
             {label}
@@ -924,24 +927,24 @@ function HeroPreview() {
             aria-label="Concept preview of the IMS batch overview showing interns with their activity status"
             className="mx-auto w-full max-w-[880px] rounded-3xl border border-white/15 bg-white/10 p-2 backdrop-blur-sm"
         >
-            <div className="overflow-hidden rounded-2xl bg-white text-left">
+            <div className="overflow-hidden rounded-2xl bg-surface text-left">
                 <div className="flex flex-wrap items-center justify-between gap-3 border border-transparent px-4 py-3 sm:px-6">
                     <div>
-                        <p className={cn(T.title3, "text-[#141B2A]")}>Batch B1 overview</p>
-                        <p className={cn(T.caption4, "text-[#647087]")}>Teams, group managers and interns</p>
+                        <p className={cn(T.title3, "text-ink")}>Batch B1 overview</p>
+                        <p className={cn(T.caption4, "text-ink-500")}>Teams, group managers and interns</p>
                     </div>
-                    <span className={cn(T.caption3, "rounded-full bg-[#F1F3F6] px-3 py-1 text-[#536078]")}>
+                    <span className={cn(T.caption3, "rounded-full bg-grey-50 px-3 py-1 text-ink-600")}>
                         Concept preview · sample data
                     </span>
                 </div>
-                <div className="bg-[#F7F8FA] px-4 py-2 sm:px-6">
-                    <div className={cn("hidden grid-cols-[1.4fr_1fr_1fr_1fr] gap-4 py-2 text-[#647087] md:grid", T.caption4)}>
+                <div className="bg-canvas px-4 py-2 sm:px-6">
+                    <div className={cn("hidden grid-cols-[1.4fr_1fr_1fr_1fr] gap-4 py-2 text-ink-500 md:grid", T.caption4)}>
                         <span>Intern</span>
                         <span>Team</span>
                         <span>Status</span>
                         <span>Last login</span>
                     </div>
-                    <ul className="divide-y divide-[#E8EBF0]">
+                    <ul className="divide-y divide-grey-100">
                         {PREVIEW_ROWS.map((row) => (
                             <li
                                 key={row.name}
@@ -950,20 +953,20 @@ function HeroPreview() {
                                 <span className="flex items-center gap-3">
                                     <span
                                         aria-hidden="true"
-                                        className={cn("grid h-8 w-8 place-items-center rounded-full bg-[#2862F4]/10 text-[#2862F4]", T.caption3)}
+                                        className={cn("grid h-8 w-8 place-items-center rounded-full bg-brand/10 text-brand-text", T.caption3)}
                                     >
                                         {row.name
                                             .split(" ")
                                             .map((part) => part[0])
                                             .join("")}
                                     </span>
-                                    <span className={cn(T.title4, "text-[#141B2A]")}>{row.name}</span>
+                                    <span className={cn(T.title4, "text-ink")}>{row.name}</span>
                                 </span>
-                                <span className={cn(T.body6, "hidden text-[#536078] md:block")}>{row.team}</span>
+                                <span className={cn(T.body6, "hidden text-ink-600 md:block")}>{row.team}</span>
                                 <span className="justify-self-end md:justify-self-start">
                                     <StatePill state={row.state} />
                                 </span>
-                                <span className={cn(T.body6, "hidden text-[#536078] md:block")}>{row.login}</span>
+                                <span className={cn(T.body6, "hidden text-ink-600 md:block")}>{row.login}</span>
                             </li>
                         ))}
                     </ul>
@@ -974,9 +977,9 @@ function HeroPreview() {
                         { label: "Tasks", value: "Pending · Todo · Done" },
                         { label: "Tickets", value: "Scrutiny · Resolved · Reject" },
                     ].map((item) => (
-                        <div key={item.label} className="rounded-xl bg-[#F1F3F6] px-3 py-3">
-                            <p className={cn(T.caption4, "text-[#647087]")}>{item.label}</p>
-                            <p className={cn(T.title4, "mt-1 text-[#141B2A]")}>{item.value}</p>
+                        <div key={item.label} className="rounded-xl bg-grey-50 px-3 py-3">
+                            <p className={cn(T.caption4, "text-ink-500")}>{item.label}</p>
+                            <p className={cn(T.title4, "mt-1 text-ink")}>{item.value}</p>
                         </div>
                     ))}
                 </div>
@@ -987,8 +990,8 @@ function HeroPreview() {
 
 function Hero() {
     return (
-        <section id="top" aria-labelledby="hero-title" className="bg-[#F7F8FA] p-2">
-            <div className="relative isolate overflow-hidden rounded-2xl bg-[#020407] px-4 pb-10 pt-24 text-white sm:pb-16 sm:px-6 lg:px-8">
+        <section id="top" aria-labelledby="hero-title" className="bg-canvas p-2">
+            <div className="relative isolate overflow-hidden rounded-2xl bg-panel px-4 pb-10 pt-24 text-white sm:pb-16 sm:px-6 lg:px-8">
                 <img
                     src={GRADIENT_SIGNUP}
                     alt=""
@@ -1077,16 +1080,16 @@ function TrustStrip() {
     return (
         <section aria-label="Built on" className="px-4 py-12 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-[1200px]">
-                <p className={cn(T.mono, "text-center uppercase text-[#647087]")}>Designed around</p>
+                <p className={cn(T.mono, "text-center uppercase text-ink-500")}>Designed around</p>
                 <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                     {items.map((item, index) => (
                         <li key={item.label}>
                             <Reveal delay={index * 60}>
-                                <div className="flex items-center gap-3 rounded-xl border border-[#E8EBF0] bg-white px-4 py-3">
-                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#2862F4]/10 text-[#2862F4]">
+                                <div className="flex items-center gap-3 rounded-xl border border-grey-100 bg-surface px-4 py-3">
+                                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10 text-brand-text">
                                         <Icon name={item.icon} className="h-4 w-4" />
                                     </span>
-                                    <span className={cn(T.title4, "text-[#141B2A]")}>{item.label}</span>
+                                    <span className={cn(T.title4, "text-ink")}>{item.label}</span>
                                 </div>
                             </Reveal>
                         </li>
@@ -1116,11 +1119,11 @@ function ProblemSolution() {
         <Section id="why" labelledBy="why-title">
             <Reveal>
                 <div className="max-w-[680px] mx-auto text-center">
-                    <p className={cn(T.mono, "uppercase text-[#2862F4]")}>Why IMS</p>
-                    <h2 id="why-title" className={cn(T.heading2, "mt-3 text-[#141B2A]")}>
+                    <p className={cn(T.mono, "uppercase text-brand-text")}>Why IMS</p>
+                    <h2 id="why-title" className={cn(T.heading2, "mt-3 text-ink")}>
                         Internship programmes deserve better than a shared drive
                     </h2>
-                    <p className={cn(T.body3, "mt-4 text-[#536078]")}>
+                    <p className={cn(T.body3, "mt-4 text-ink-600")}>
                         Running a cohort means documents, people, deadlines and decisions all moving at once. IMS keeps
                         them in one system with clear owners.
                     </p>
@@ -1128,27 +1131,27 @@ function ProblemSolution() {
             </Reveal>
             <div className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Reveal>
-                    <div className="h-full rounded-2xl border border-[#E8EBF0] bg-white p-6 sm:p-8">
-                        <p className={cn(T.mono, "uppercase text-[#647087]")}>Without IMS</p>
+                    <div className="h-full rounded-2xl border border-grey-100 bg-surface p-6 sm:p-8">
+                        <p className={cn(T.mono, "uppercase text-ink-500")}>Without IMS</p>
                         <ul className="mt-6 space-y-4">
                             {before.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
-                                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#D94A4A]/10 text-[#D94A4A]">
+                                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-bad-solid/10 text-bad-bright">
                                         <Icon name="close" className="h-3.5 w-3.5" />
                                     </span>
-                                    <span className={cn(T.body3, "text-[#536078]")}>{item}</span>
+                                    <span className={cn(T.body3, "text-ink-600")}>{item}</span>
                                 </li>
                             ))}
                         </ul>
                     </div>
                 </Reveal>
                 <Reveal delay={80}>
-                    <div className="h-full rounded-2xl bg-[#020407] p-6 sm:p-8">
-                        <p className={cn(T.mono, "uppercase text-[#98A2B3]")}>With IMS</p>
+                    <div className="h-full rounded-2xl bg-panel p-6 sm:p-8">
+                        <p className={cn(T.mono, "uppercase text-ink-400")}>With IMS</p>
                         <ul className="mt-6 space-y-4">
                             {after.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
-                                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#2EAD79]/15 text-[#2EAD79]">
+                                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ok-solid/15 text-ok-bright">
                                         <Icon name="check" className="h-3.5 w-3.5" />
                                     </span>
                                     <span className={cn(T.body3, "text-white")}>{item}</span>
@@ -1211,7 +1214,7 @@ function TaglineReveal() {
                                 data-index={index}
                                 style={{ transitionDelay: on ? `${(index % 6) * 60}ms` : "0ms" }}
                                 className={cn(
-                                    "inline-block pr-[0.25em] text-[#141B2A] transition-opacity duration-700",
+                                    "inline-block pr-[0.25em] text-ink transition-opacity duration-700",
                                     EASE,
                                     on ? "opacity-100" : "opacity-30",
                                 )}
@@ -1235,11 +1238,11 @@ function Features() {
         <Section id="features" labelledBy="features-title">
             <Reveal>
                 <div className="mx-auto max-w-[680px] text-center">
-                    <p className={cn(T.mono, "uppercase text-[#2862F4]")}>Twelve modules, one system</p>
-                    <h2 id="features-title" className={cn(T.heading2, "mt-3 text-[#141B2A]")}>
+                    <p className={cn(T.mono, "uppercase text-brand-text")}>Twelve modules, one system</p>
+                    <h2 id="features-title" className={cn(T.heading2, "mt-3 text-ink")}>
                         Everything a batch needs from day one to the last score
                     </h2>
-                    <p className={cn(T.body3, "mt-4 text-[#536078]")}>
+                    <p className={cn(T.body3, "mt-4 text-ink-600")}>
                         Each module is specified in the IMS requirements document, so what you read here is what is being built.
                     </p>
                 </div>
@@ -1250,19 +1253,19 @@ function Features() {
                         <Reveal delay={(index % 3) * 70} className="h-full">
                             <article
                                 className={cn(
-                                    "group h-full rounded-2xl border border-[#E8EBF0] bg-white p-6 transition-[transform,border-color] duration-500",
+                                    "group h-full rounded-2xl border border-grey-100 bg-surface p-6 transition-[transform,border-color] duration-500",
                                     EASE,
-                                    "hover:-translate-y-1 hover:border-[#2862F4]/40 active:scale-[0.98] motion-reduce:hover:translate-y-0",
+                                    "hover:-translate-y-1 hover:border-brand/40 active:scale-[0.98] motion-reduce:hover:translate-y-0",
                                 )}
                             >
                                 <div className="flex items-center justify-between">
-                                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#2862F4]/10 text-[#2862F4]">
+                                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand-text">
                                         <Icon name={feature.icon} />
                                     </span>
-                                    {/* <span className={cn(T.mono, "text-[#98A2B3]")}>{feature.code}</span> */}
+                                    {/* <span className={cn(T.mono, "text-ink-400")}>{feature.code}</span> */}
                                 </div>
-                                <h3 className={cn(T.title2, "mt-6 text-[#141B2A]")}>{feature.title}</h3>
-                                <p className={cn(T.body6, "mt-2 text-[#536078]")}>{feature.body}</p>
+                                <h3 className={cn(T.title2, "mt-6 text-ink")}>{feature.title}</h3>
+                                <p className={cn(T.body6, "mt-2 text-ink-600")}>{feature.body}</p>
                             </article>
                         </Reveal>
                     </li>
@@ -1291,7 +1294,7 @@ function RoleExplorer() {
     };
 
     return (
-        <Section id="roles" labelledBy="roles-title" className="bg-white">
+        <Section id="roles" labelledBy="roles-title" className="bg-surface">
             <Reveal>
                 <SectionHeading
                     id="roles-title"
@@ -1301,7 +1304,7 @@ function RoleExplorer() {
                 />
             </Reveal>
             <Reveal className="mt-12">
-                <div className="rounded-3xl border border-[#E8EBF0] bg-[#F7F8FA] p-2">
+                <div className="rounded-3xl border border-grey-100 bg-canvas p-2">
                     <div
                         role="tablist"
                         aria-label="IMS roles"
@@ -1322,9 +1325,9 @@ function RoleExplorer() {
                                     "rounded-2xl px-4 py-3 transition-colors duration-300 active:scale-[0.98]",
                                     T.title3,
                                     role === key
-                                        ? "bg-[#2862F4] text-white"
-                                        : "bg-transparent text-[#536078] hover:bg-white hover:text-[#141B2A]",
-                                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2862F4]/35",
+                                        ? "bg-brand text-white"
+                                        : "bg-transparent text-ink-600 hover:bg-surface hover:text-ink",
+                                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/35",
                                 )}
                             >
                                 {key === "GPM" ? "Group manager" : key}
@@ -1336,11 +1339,11 @@ function RoleExplorer() {
                         id="role-panel"
                         role="tabpanel"
                         aria-labelledby={`role-tab-${role}`}
-                        className="mt-2 grid grid-cols-1 gap-8 rounded-2xl bg-white p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]"
+                        className="mt-2 grid grid-cols-1 gap-8 rounded-2xl bg-surface p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]"
                     >
                         <div key={role} className="animate-[fadeIn_500ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none">
-                            <p className={cn(T.mono, "uppercase text-[#647087]")}>{current.scope}</p>
-                            <h3 className={cn(T.heading3, "mt-3 text-[#141B2A]")}>{current.tagline}</h3>
+                            <p className={cn(T.mono, "uppercase text-ink-500")}>{current.scope}</p>
+                            <h3 className={cn(T.heading3, "mt-3 text-ink")}>{current.tagline}</h3>
                             <div className="mt-6">
                                 <Button
                                     variant="outline"
@@ -1353,11 +1356,11 @@ function RoleExplorer() {
                         </div>
                         <ul key={`${role}-list`} className="space-y-3 animate-[fadeIn_500ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none">
                             {current.can.map((item) => (
-                                <li key={item} className="flex items-start gap-3 rounded-xl bg-[#F7F8FA] px-4 py-3">
-                                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#2EAD79]/15 text-[#2EAD79]">
+                                <li key={item} className="flex items-start gap-3 rounded-xl bg-canvas px-4 py-3">
+                                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-ok-solid/15 text-ok-bright">
                                         <Icon name="check" className="h-3 w-3" />
                                     </span>
-                                    <span className={cn(T.body6, "text-[#141B2A]")}>{item}</span>
+                                    <span className={cn(T.body6, "text-ink")}>{item}</span>
                                 </li>
                             ))}
                         </ul>
@@ -1378,8 +1381,8 @@ function HowItWorks() {
         <Section id="how-it-works" labelledBy="how-title">
             <Reveal>
                 <div className="mx-auto max-w-[680px] text-center">
-                    <p className={cn(T.mono, "uppercase text-[#2862F4]")}>How it works</p>
-                    <h2 id="how-title" className={cn(T.heading2, "mt-3 text-[#141B2A]")}>
+                    <p className={cn(T.mono, "uppercase text-brand-text")}>How it works</p>
+                    <h2 id="how-title" className={cn(T.heading2, "mt-3 text-ink")}>
                         From first sign up to final score in three steps
                     </h2>
                 </div>
@@ -1388,12 +1391,12 @@ function HowItWorks() {
                 {STEPS.map((step, index) => (
                     <li key={step.n}>
                         <Reveal delay={index * 90} className="h-full">
-                            <div className="h-full rounded-2xl border border-[#E8EBF0] bg-white p-6 sm:p-8">
-                                <span className={cn(T.mono, "rounded-full bg-[#2862F4]/10 px-3 py-1 text-[#2862F4]")}>
+                            <div className="h-full rounded-2xl border border-grey-100 bg-surface p-6 sm:p-8">
+                                <span className={cn(T.mono, "rounded-full bg-brand/10 px-3 py-1 text-brand-text")}>
                                     Step {step.n}
                                 </span>
-                                <h3 className={cn(T.heading6, "mt-6 text-[#141B2A]")}>{step.title}</h3>
-                                <p className={cn(T.body3, "mt-3 text-[#536078]")}>{step.body}</p>
+                                <h3 className={cn(T.heading6, "mt-6 text-ink")}>{step.title}</h3>
+                                <p className={cn(T.body3, "mt-3 text-ink-600")}>{step.body}</p>
                             </div>
                         </Reveal>
                     </li>
@@ -1409,16 +1412,16 @@ function HowItWorks() {
 
 function ActivitySpotlight() {
     return (
-        <section aria-labelledby="activity-title" className="bg-[#F7F8FA] p-2">
-            <div className="relative isolate overflow-hidden rounded-2xl bg-[#020407] px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+        <section aria-labelledby="activity-title" className="bg-canvas p-2">
+            <div className="relative isolate overflow-hidden rounded-2xl bg-panel px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
                 <div className="mx-auto max-w-[1200px]">
                     <Reveal>
                         <div className="mx-auto max-w-[680px] text-center">
-                            <p className={cn(T.mono, "uppercase text-[#98A2B3]")}>Activity monitoring</p>
+                            <p className={cn(T.mono, "uppercase text-ink-400")}>Activity monitoring</p>
                             <h2 id="activity-title" className={cn(T.heading2, "mt-3 text-white")}>
                                 Quiet interns get noticed before they disappear
                             </h2>
-                            <p className={cn(T.body3, "mt-4 text-[#98A2B3]")}>
+                            <p className={cn(T.body3, "mt-4 text-ink-400")}>
                                 A scheduled job checks every user at least once an hour. These are the default thresholds, and Admin can
                                 change them.
                             </p>
@@ -1438,7 +1441,7 @@ function ActivitySpotlight() {
                             <li key={stage.state}>
                                 <Reveal delay={index * 80} className="h-full">
                                     <div className="h-full rounded-2xl border border-white/10 bg-[#181818] p-6">
-                                        <p className={cn(T.mono, "text-[#98A2B3]")}>{stage.hours}</p>
+                                        <p className={cn(T.mono, "text-ink-400")}>{stage.hours}</p>
                                         <p className={cn(T.heading6, "mt-3 flex items-center gap-2 text-white")}>
                                             <span
                                                 aria-hidden="true"
@@ -1447,7 +1450,7 @@ function ActivitySpotlight() {
                                             />
                                             {stage.state}
                                         </p>
-                                        <p className={cn(T.body6, "mt-3 text-[#98A2B3]")}>{stage.body}</p>
+                                        <p className={cn(T.body6, "mt-3 text-ink-400")}>{stage.body}</p>
                                     </div>
                                 </Reveal>
                             </li>
@@ -1468,11 +1471,11 @@ function Security() {
         <Section id="security" labelledBy="security-title">
             <Reveal>
                 <div className="mx-auto max-w-[680px] text-center">
-                    <p className={cn(T.mono, "uppercase text-[#2862F4]")}>Security and privacy</p>
-                    <h2 id="security-title" className={cn(T.heading2, "mt-3 text-[#141B2A]")}>
+                    <p className={cn(T.mono, "uppercase text-brand-text")}>Security and privacy</p>
+                    <h2 id="security-title" className={cn(T.heading2, "mt-3 text-ink")}>
                         Sensitive documents deserve careful handling
                     </h2>
-                    <p className={cn(T.body3, "mt-4 text-[#536078]")}>
+                    <p className={cn(T.body3, "mt-4 text-ink-600")}>
                         Aadhaar, PAN and marksheets are personal data. IMS limits who can see them and keeps a record of who did.
                     </p>
                 </div>
@@ -1481,13 +1484,13 @@ function Security() {
                 {SECURITY_ITEMS.map((item, index) => (
                     <li key={item.title}>
                         <Reveal delay={(index % 3) * 70} className="h-full">
-                            <div className="flex h-full gap-4 rounded-2xl border border-[#E8EBF0] bg-white p-6">
+                            <div className="flex h-full gap-4 rounded-2xl border border-grey-100 bg-surface p-6">
                                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#141B2A] text-white">
                                     <Icon name={item.icon} />
                                 </span>
                                 <div>
-                                    <h3 className={cn(T.title2, "text-[#141B2A]")}>{item.title}</h3>
-                                    <p className={cn(T.body6, "mt-2 text-[#536078]")}>{item.body}</p>
+                                    <h3 className={cn(T.title2, "text-ink")}>{item.title}</h3>
+                                    <p className={cn(T.body6, "mt-2 text-ink-600")}>{item.body}</p>
                                 </div>
                             </div>
                         </Reveal>
@@ -1504,44 +1507,44 @@ function Security() {
 
 function Roadmap() {
     return (
-        <Section id="roadmap" labelledBy="roadmap-title" className="bg-white">
+        <Section id="roadmap" labelledBy="roadmap-title" className="bg-surface">
             <Reveal>
                 <div className="mx-auto max-w-[680px] text-center">
-                    <p className={cn(T.mono, "uppercase text-[#2862F4]")}>Launching soon</p>
-                    <h2 id="roadmap-title" className={cn(T.heading2, "mt-3 text-[#141B2A]")}>
+                    <p className={cn(T.mono, "uppercase text-brand-text")}>Launching soon</p>
+                    <h2 id="roadmap-title" className={cn(T.heading2, "mt-3 text-ink")}>
                         What ships in release 1.0 and what comes after
                     </h2>
-                    <p className={cn(T.body3, "mt-4 text-[#536078]")}>
+                    <p className={cn(T.body3, "mt-4 text-ink-600")}>
                         IMS is under development, so we are open about scope. Details may change before launch.
                     </p>
                 </div>
             </Reveal>
             <div className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Reveal>
-                    <div className="h-full rounded-2xl border border-[#E8EBF0] bg-[#F7F8FA] p-6 sm:p-8">
-                        <p className={cn(T.mono, "uppercase text-[#2EAD79]")}>In release 1.0</p>
+                    <div className="h-full rounded-2xl border border-grey-100 bg-canvas p-6 sm:p-8">
+                        <p className={cn(T.mono, "uppercase text-ok-bright")}>In release 1.0</p>
                         <ul className="mt-6 space-y-3">
                             {ROADMAP_NOW.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
-                                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#2EAD79]/15 text-[#2EAD79]">
+                                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-ok-solid/15 text-ok-bright">
                                         <Icon name="check" className="h-3 w-3" />
                                     </span>
-                                    <span className={cn(T.body3, "text-[#141B2A]")}>{item}</span>
+                                    <span className={cn(T.body3, "text-ink")}>{item}</span>
                                 </li>
                             ))}
                         </ul>
                     </div>
                 </Reveal>
                 <Reveal delay={80}>
-                    <div className="h-full rounded-2xl border border-[#E8EBF0] bg-[#F7F8FA] p-6 sm:p-8">
-                        <p className={cn(T.mono, "uppercase text-[#D99127]")}>Later or not planned</p>
+                    <div className="h-full rounded-2xl border border-grey-100 bg-canvas p-6 sm:p-8">
+                        <p className={cn(T.mono, "uppercase text-warn")}>Later or not planned</p>
                         <ul className="mt-6 space-y-3">
                             {ROADMAP_LATER.map((item) => (
                                 <li key={item} className="flex items-start gap-3">
-                                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#D99127]/15 text-[#D99127]">
+                                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-warn-solid/15 text-warn">
                                         <Icon name="clock" className="h-3 w-3" />
                                     </span>
-                                    <span className={cn(T.body3, "text-[#141B2A]")}>{item}</span>
+                                    <span className={cn(T.body3, "text-ink")}>{item}</span>
                                 </li>
                             ))}
                         </ul>
@@ -1561,8 +1564,8 @@ function Faq() {
         <Section id="faq" labelledBy="faq-title">
             <Reveal>
                 <div className="mx-auto max-w-[680px] text-center">
-                    <p className={cn(T.mono, "uppercase text-[#2862F4]")}>FAQ</p>
-                    <h2 id="faq-title" className={cn(T.heading2, "mt-3 text-[#141B2A]")}>
+                    <p className={cn(T.mono, "uppercase text-brand-text")}>FAQ</p>
+                    <h2 id="faq-title" className={cn(T.heading2, "mt-3 text-ink")}>
                         Questions people ask before joining
                     </h2>
                 </div>
@@ -1570,24 +1573,24 @@ function Faq() {
             <div className="mx-auto mt-12 max-w-[800px] space-y-3">
                 {FAQS.map((item, index) => (
                     <Reveal key={item.q} delay={Math.min(index * 40, 200)}>
-                        <details className="group rounded-2xl border border-[#E8EBF0] bg-white open:border-[#2862F4]/40">
+                        <details className="group rounded-2xl border border-grey-100 bg-surface open:border-brand/40">
                             <summary
                                 className={cn(
-                                    "flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-6 py-4 text-[#141B2A] [&::-webkit-details-marker]:hidden",
+                                    "flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-6 py-4 text-ink [&::-webkit-details-marker]:hidden",
                                     T.title2,
-                                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2862F4]/25",
+                                    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/25",
                                 )}
                             >
                                 <span>{item.q}</span>
                                 <Icon
                                     name="chevron"
                                     className={cn(
-                                        "h-5 w-5 text-[#647087] transition-transform duration-500 group-open:rotate-180",
+                                        "h-5 w-5 text-ink-500 transition-transform duration-500 group-open:rotate-180",
                                         EASE,
                                     )}
                                 />
                             </summary>
-                            <p className={cn(T.body3, "px-6 pb-6 text-[#536078]")}>{item.a}</p>
+                            <p className={cn(T.body3, "px-6 pb-6 text-ink-600")}>{item.a}</p>
                         </details>
                     </Reveal>
                 ))}
@@ -1662,11 +1665,11 @@ function EarlyAccess({ onJoinWaitlist }: LandingPageProps) {
     };
 
     const inputBase =
-        "h-[46px] w-full rounded-xl border bg-white px-4 font-sans text-sm font-normal text-[#141B2A] outline-none placeholder:text-[#98A2B3] focus:border-[#2862F4] focus:ring-4 focus:ring-[#2862F4]/10";
+        "h-[46px] w-full rounded-xl border bg-surface px-4 font-sans text-sm font-normal text-ink outline-none placeholder:text-ink-400 focus:border-brand focus:ring-4 focus:ring-brand/10";
 
     return (
-        <section id="early-access" aria-labelledby="early-title" className="scroll-mt-4 bg-[#F7F8FA] p-2">
-            <div className="relative isolate overflow-hidden rounded-2xl bg-[#020407] px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+        <section id="early-access" aria-labelledby="early-title" className="scroll-mt-4 bg-canvas p-2">
+            <div className="relative isolate overflow-hidden rounded-2xl bg-panel px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
                 <img
                     src={GRADIENT_LOGIN}
                     alt=""
@@ -1705,21 +1708,21 @@ function EarlyAccess({ onJoinWaitlist }: LandingPageProps) {
 
                     <Reveal delay={100}>
                         <div className="rounded-3xl border border-white/15 bg-white/10 p-2 backdrop-blur-sm">
-                            <div className="rounded-2xl bg-white p-6 sm:p-8">
+                            <div className="rounded-2xl bg-surface p-6 sm:p-8">
                                 {status === "success" ? (
                                     <div role="status" className="py-8 text-center">
-                                        <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#2EAD79]/15 text-[#2EAD79]">
+                                        <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-ok-solid/15 text-ok-bright">
                                             <Icon name="check" className="h-6 w-6" />
                                         </span>
-                                        <h3 className={cn(T.heading5, "mt-6 text-[#141B2A]")}>You are on the list</h3>
-                                        <p className={cn(T.body3, "mt-2 text-[#536078]")}>
+                                        <h3 className={cn(T.heading5, "mt-6 text-ink")}>You are on the list</h3>
+                                        <p className={cn(T.body3, "mt-2 text-ink-600")}>
                                             We will write to {email.trim()} when IMS opens.
                                         </p>
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSubmit} noValidate>
-                                        <h3 className={cn(T.heading5, "text-[#141B2A]")}>Join early access</h3>
-                                        <p className={cn(T.body6, "mt-1 text-[#536078]")}>It takes about ten seconds.</p>
+                                        <h3 className={cn(T.heading5, "text-ink")}>Join early access</h3>
+                                        <p className={cn(T.body6, "mt-1 text-ink-600")}>It takes about ten seconds.</p>
 
                                         <div className="mt-6 space-y-4">
                                             <div>
@@ -1741,10 +1744,10 @@ function EarlyAccess({ onJoinWaitlist }: LandingPageProps) {
                                                     }}
                                                     aria-invalid={Boolean(errors.email)}
                                                     aria-describedby={errors.email ? "ea-email-error" : undefined}
-                                                    className={cn(inputBase, errors.email ? "border-[#DC5555]" : "border-[#E8EBF0]")}
+                                                    className={cn(inputBase, errors.email ? "border-bad-line" : "border-grey-100")}
                                                 />
                                                 {errors.email ? (
-                                                    <p id="ea-email-error" className={cn(T.caption5, "mt-1.5 text-[#C33F45]")}>
+                                                    <p id="ea-email-error" className={cn(T.caption5, "mt-1.5 text-bad")}>
                                                         {errors.email}
                                                     </p>
                                                 ) : null}
@@ -1768,8 +1771,8 @@ function EarlyAccess({ onJoinWaitlist }: LandingPageProps) {
                                                         className={cn(
                                                             inputBase,
                                                             "appearance-none pr-10",
-                                                            role ? "text-[#141B2A]" : "text-[#98A2B3]",
-                                                            errors.role ? "border-[#DC5555]" : "border-[#E8EBF0]",
+                                                            role ? "text-ink" : "text-ink-400",
+                                                            errors.role ? "border-bad-line" : "border-grey-100",
                                                         )}
                                                     >
                                                         <option value="" disabled>
@@ -1783,11 +1786,11 @@ function EarlyAccess({ onJoinWaitlist }: LandingPageProps) {
                                                     </select>
                                                     <Icon
                                                         name="chevron"
-                                                        className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#101828]"
+                                                        className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink"
                                                     />
                                                 </div>
                                                 {errors.role ? (
-                                                    <p id="ea-role-error" className={cn(T.caption5, "mt-1.5 text-[#C33F45]")}>
+                                                    <p id="ea-role-error" className={cn(T.caption5, "mt-1.5 text-bad")}>
                                                         {errors.role}
                                                     </p>
                                                 ) : null}
@@ -1807,14 +1810,14 @@ function EarlyAccess({ onJoinWaitlist }: LandingPageProps) {
                                         </div>
 
                                         {status === "error" ? (
-                                            <p role="alert" className={cn(T.body6, "mt-4 text-[#C33F45]")}>
+                                            <p role="alert" className={cn(T.body6, "mt-4 text-bad")}>
                                                 {message}{" "}
                                                 {contactEmail ? (
                                                     <>
                                                         You can also write to{" "}
                                                         <a
                                                             href={`mailto:${contactEmail}`}
-                                                            className="font-medium text-[#1457E8] underline underline-offset-2"
+                                                            className="font-medium text-brand-strong underline underline-offset-2"
                                                         >
                                                             {contactEmail}
                                                         </a>
@@ -1835,7 +1838,7 @@ function EarlyAccess({ onJoinWaitlist }: LandingPageProps) {
                                                 Join early access
                                             </Button>
                                         </div>
-                                        <p className={cn(T.body6, "mt-4 text-center text-[#647087]")}>
+                                        <p className={cn(T.body6, "mt-4 text-center text-ink-500")}>
                                             We use your email only to tell you about the IMS launch.
                                         </p>
                                     </form>
@@ -1857,22 +1860,22 @@ function Footer() {
     const navigate = useNavigate();
     const year = new Date().getFullYear();
     const linkClass = cn(
-        "rounded-lg text-left text-[#98A2B3] transition-colors duration-300 hover:text-white",
+        "rounded-lg text-left text-ink-400 transition-colors duration-300 hover:text-white",
         T.body6,
         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30",
     );
 
     return (
-        <footer className="bg-[#F7F8FA] p-2 pt-0">
-            <div className="rounded-2xl bg-[#020407] px-4 py-16 text-white sm:px-6 lg:px-8">
+        <footer className="bg-canvas p-2 pt-0">
+            <div className="rounded-2xl bg-panel px-4 py-16 text-white sm:px-6 lg:px-8">
                 <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
                     <div>
                         <div className="flex items-center gap-3">
-                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#ffffff] text-white">
+                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface text-white">
                                 <img src="https://i.ibb.co/S73b3Rzt/weborium-logo-8k-transparent.png" alt="weborium_labs_logo" />
                             </span>
                         </div>
-                        <p className={cn(T.body6, "mt-4 max-w-[320px] text-[#98A2B3]")}>
+                        <p className={cn(T.body6, "mt-4 max-w-[320px] text-ink-400")}>
                             Run internship batches with clear owners, clear records and fewer spreadsheets. Launching soon.
                         </p>
                         <div className="mt-8 flex items-center gap-3">
@@ -1882,7 +1885,7 @@ function Footer() {
                     </div>
 
                     <nav aria-label="Product">
-                        <p className={cn(T.mono, "uppercase text-[#98A2B3]")}>Product</p>
+                        <p className={cn(T.mono, "uppercase text-ink-400")}>Product</p>
                         <ul className="mt-4 space-y-3">
                             {NAV_LINKS.map((link) => (
                                 <li key={link.id}>
@@ -1902,7 +1905,7 @@ function Footer() {
                     </nav>
 
                     <nav aria-label="Account">
-                        <p className={cn(T.mono, "uppercase text-[#98A2B3]")}>Account</p>
+                        <p className={cn(T.mono, "uppercase text-ink-400")}>Account</p>
                         <ul className="mt-4 space-y-3">
                             <li>
                                 <button type="button" onClick={() => navigate("/login")} className={linkClass}>
@@ -1923,7 +1926,7 @@ function Footer() {
                     </nav>
 
                     <nav aria-label="Legal">
-                        <p className={cn(T.mono, "uppercase text-[#98A2B3]")}>Legal</p>
+                        <p className={cn(T.mono, "uppercase text-ink-400")}>Legal</p>
                         <ul className="mt-4 space-y-3">
                             <li>
                                 <button type="button" onClick={() => navigate("/terms")} className={linkClass}>
@@ -1940,8 +1943,8 @@ function Footer() {
                 </div>
 
                 <div className="mx-auto mt-12 flex max-w-[1200px] flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className={cn(T.caption4, "text-[#98A2B3]")}>© {year} Weborium Labs. All rights reserved.</p>
-                    <p className={cn(T.caption4, "text-[#98A2B3]")}>
+                    <p className={cn(T.caption4, "text-ink-400")}>© {year} Weborium Labs. All rights reserved.</p>
+                    <p className={cn(T.caption4, "text-ink-400")}>
                         IMS is under development. Features may change before release 1.0.
                     </p>
                 </div>
@@ -1963,13 +1966,13 @@ export default function LandingPage({ onJoinWaitlist }: LandingPageProps) {
 
     return (
         <div
-            className="min-h-[100svh] w-full overflow-x-hidden bg-[#F7F8FA] text-[#141B2A] antialiased"
+            className="min-h-[100svh] w-full overflow-x-hidden bg-canvas text-ink antialiased"
             style={{ fontFamily: "'Geist', ui-sans-serif, system-ui, sans-serif" }}
         >
             <a
                 href="#main"
                 className={cn(
-                    "sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-[#2862F4] focus:px-4 focus:py-3 focus:text-white",
+                    "sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-xl focus:bg-brand focus:px-4 focus:py-3 focus:text-white",
                     T.title4,
                 )}
             >

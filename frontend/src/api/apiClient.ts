@@ -13,6 +13,12 @@ export interface ApiClientError {
     message: string;
     code?: string;
     field?: string;
+    /**
+     * Account email attached to a structured error (e.g. `EMAIL_NOT_VERIFIED`
+     * after a correct-password login), so flows that verify against email can
+     * proceed even when the user signed in with a username.
+     */
+    email?: string;
 }
 
 interface BackendErrorEntry {
@@ -20,6 +26,7 @@ interface BackendErrorEntry {
     field?: unknown;
     path?: unknown;
     message?: unknown;
+    email?: unknown;
 }
 
 /** Application codes are SCREAMING_SNAKE_CASE; Zod issue codes are lower_snake. */
@@ -110,6 +117,10 @@ apiClient.interceptors.response.use(
                 : typeof structured?.path === "string"
                   ? structured.path
                   : undefined;
+        const email =
+            typeof structured?.email === "string"
+                ? structured.email
+                : undefined;
 
         // Back-compat shim: the OTP screens branch on `code === "OTP_INVALID"`,
         // but the backend reports OTP failures as plain 400s. Scope that legacy
@@ -126,6 +137,7 @@ apiClient.interceptors.response.use(
             status,
             code,
             field,
+            email,
         } satisfies ApiClientError);
     },
 );

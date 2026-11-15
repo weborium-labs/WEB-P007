@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home | IMS Weborium Labs</title>
+    <script>
+      // Resolve the theme before the first paint so light/dark never flashes.
+      // Mirrors resolveInitialMode() in src/store/theme.store.ts.
+      (function () {
+        try {
+          var stored = localStorage.getItem("ims-theme");
+          var dark = stored
+            ? stored === "dark"
+            : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var root = document.documentElement;
+          root.classList.toggle("dark", dark);
+          root.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {
+          /* keep the default light theme */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

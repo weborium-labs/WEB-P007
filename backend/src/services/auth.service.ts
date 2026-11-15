@@ -359,9 +359,14 @@ export const login = async (input: LoginInput) => {
     getSignupOtpEmailTemplate({ username: user.username, otp }),
 );
 
+        // Structured `code` lets the client open its OTP verification UI
+        // instead of just showing a message. The account email is included
+        // only because this branch runs *after* the password was proven
+        // correct — a username login still needs it to call /auth/verify-otp.
         throw new ApiError(
             403,
             "Email not verified. A new verification OTP has been sent to your email.",
+            [{ code: "EMAIL_NOT_VERIFIED", email: user.email }],
         );
     }
 

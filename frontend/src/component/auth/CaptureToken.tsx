@@ -75,20 +75,20 @@ export default function CaptureToken() {
             "We couldn't complete your Google sign-in. Please try again.";
 
         return (
-            <main className="flex min-h-[100svh] items-center justify-center bg-[#F7F8FA] px-5 py-12 font-sans">
-                <section className="w-full max-w-[440px] rounded-2xl border border-[#EEF0F3] bg-white p-8 text-center shadow-[0_14px_44px_rgba(20,27,42,0.10)]">
-                    <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#FEE4E2]">
+            <main className="flex min-h-[100svh] items-center justify-center bg-canvas px-5 py-12 font-sans">
+                <section className="w-full max-w-[440px] rounded-2xl border border-line-soft bg-surface p-8 text-center shadow-[0_14px_44px_rgba(20,27,42,0.10)]">
+                    <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-bad-soft-2">
                         <span
                             aria-hidden="true"
-                            className="text-[20px] leading-none font-bold text-[#C33F45]"
+                            className="text-[20px] leading-none font-bold text-bad"
                         >
                             !
                         </span>
                     </div>
-                    <h1 className="mt-4 text-[22px] font-bold tracking-[-0.02em] text-[#141B2A]">
+                    <h1 className="mt-4 text-[22px] font-bold tracking-[-0.02em] text-ink">
                         Sign-in failed
                     </h1>
-                    <p role="alert" className="mt-2 text-[14px] leading-6 text-[#647087]">
+                    <p role="alert" className="mt-2 text-[14px] leading-6 text-ink-500">
                         {message}
                     </p>
                     <div className="mt-6">
@@ -105,12 +105,12 @@ export default function CaptureToken() {
     }
 
     return (
-        <main className="flex min-h-[100svh] flex-col items-center justify-center bg-[#F7F8FA] px-5 font-sans">
+        <main className="flex min-h-[100svh] flex-col items-center justify-center bg-canvas px-5 font-sans">
             <span
                 aria-hidden="true"
-                className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#2862F4] border-r-transparent"
+                className="h-8 w-8 animate-spin rounded-full border-[3px] border-brand border-r-transparent"
             />
-            <p role="status" className="mt-5 text-[15px] font-medium text-[#536078]">
+            <p role="status" className="mt-5 text-[15px] font-medium text-ink-600">
                 Signing you in securely…
             </p>
         </main>

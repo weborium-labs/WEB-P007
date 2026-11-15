@@ -6,10 +6,12 @@ import {
     changePassword,
     getProfile,
     initGoogleLink,
+    setPassword,
     updateProfile,
 } from "../controllers/user.controller.js";
 import {
     changePasswordSchema,
+    setPasswordSchema,
     updateProfileSchema,
 } from "../validators/user.validator.js";
 
@@ -22,6 +24,15 @@ router.use(authenticate);
 router.get("/me", getProfile);
 router.patch("/me", validate(updateProfileSchema), updateProfile);
 router.post("/me/password", validate(changePasswordSchema), changePassword);
+
+// First-time credential setup for Google-linked accounts: confirms the
+// account email and stores the new password hash. Separate from the change
+// flow above, which always re-verifies the current password.
+router.post(
+    "/me/password/setup",
+    validate(setPasswordSchema),
+    setPassword,
+);
 
 // Account linking (Feature 3): issues the signed state for the Google
 // redirect. No body — the caller identity comes from the access token.

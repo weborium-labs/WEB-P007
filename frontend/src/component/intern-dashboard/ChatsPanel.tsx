@@ -7,7 +7,7 @@ export default function ChatsPanel({ chats }: { chats: readonly Chat[] }) {
     return (
         <section
             aria-labelledby="chats-heading"
-            className="flex min-w-0 flex-col gap-[19px] overflow-hidden rounded-3xl border border-[#F1F3F6] bg-white p-[22px] shadow-[0.2px_0.2px_12px_0_rgba(0,0,0,0.02)]"
+            className="flex min-w-0 flex-col gap-[19px] overflow-hidden rounded-3xl border border-grey-50 bg-surface p-[22px] shadow-[0.2px_0.2px_12px_0_rgba(0,0,0,0.02)]"
         >
             <SectionHeading
                 id="chats-heading"

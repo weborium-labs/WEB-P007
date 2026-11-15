@@ -15,25 +15,40 @@ import {
  *  - failures are asserted via redirect Location headers.
  */
 describe("Google OAuth routes", () => {
-    it("rejects starting Google auth without a role", async () => {
-        const res = await request(app).get("/api/v1/auth/google").expect(400);
+    it("starts Google auth with no role in the state (role is chosen later)", async () => {
+        const res = await request(app).get("/api/v1/auth/google").expect(302);
 
-        expect(res.body).toMatchObject({
-            success: false,
-            statusCode: 400,
-            message: "User Role is required",
+        expect(res.headers.location).toContain("accounts.google.com");
+
+        const state = new URL(res.headers.location).searchParams.get("state");
+        expect(state).toBeTruthy();
+        if (!state) throw new Error("Expected a signed state parameter.");
+
+        const claims = jwt.decode(state) as Record<string, unknown> | null;
+        expect(claims).toMatchObject({
+            purpose: "google_oauth_state",
+            mode: "login",
         });
+        // No implicit default: a role must never ride along into the callback.
+        expect(claims?.role).toBeUndefined();
+        expect(typeof claims?.nonce).toBe("string");
     });
 
-    it("rejects an unknown role", async () => {
-        await request(app)
+    it("ignores a role query param instead of letting it pick a role early", async () => {
+        const res = await request(app)
             .get("/api/v1/auth/google?role=Superadmin")
-            .expect(400);
+            .expect(302);
+
+        const state = new URL(res.headers.location).searchParams.get("state");
+        if (!state) throw new Error("Expected a signed state parameter.");
+
+        const claims = jwt.decode(state) as Record<string, unknown> | null;
+        expect(claims?.role).toBeUndefined();
     });
 
     it("redirects to Google with a signed state and sets the nonce cookie", async () => {
         const res = await request(app)
-            .get("/api/v1/auth/google?role=Intern")
+            .get("/api/v1/auth/google")
             .expect(302);
 
         expect(res.headers.location).toContain("accounts.google.com");
@@ -50,7 +65,6 @@ describe("Google OAuth routes", () => {
         expect(claims).toMatchObject({
             purpose: "google_oauth_state",
             mode: "login",
-            role: "Intern",
         });
         expect(typeof claims?.nonce).toBe("string");
     });
@@ -108,6 +122,41 @@ describe("Google OAuth routes", () => {
             .expect(302);
 
         expect(res.headers.location).toContain("reason=oauth_failed");
+    });
+
+    it("rejects role selection without a pending token", async () => {
+        const res = await request(app)
+            .post("/api/v1/auth/google/signup")
+            .send({ role: "Intern" })
+            .expect(400);
+
+        expect(res.body).toMatchObject({
+            success: false,
+            statusCode: 400,
+        });
+    });
+
+    it("rejects an unknown role during role selection", async () => {
+        const res = await request(app)
+            .post("/api/v1/auth/google/signup")
+            .send({ pending: "a".repeat(64), role: "Superadmin" })
+            .expect(400);
+
+        expect(res.body).toMatchObject({ statusCode: 400 });
+    });
+
+    it("rejects a forged pending token before any account write", async () => {
+        const res = await request(app)
+            .post("/api/v1/auth/google/signup")
+            .send({ pending: "not-a-jwt", role: "Intern" })
+            .expect(400);
+
+        expect(res.body).toMatchObject({
+            success: false,
+            statusCode: 400,
+            message: "This sign-up link is invalid or has expired.",
+        });
+        expect(res.body.errors?.[0]?.code).toBe("SIGNUP_PENDING_INVALID");
     });
 });
 

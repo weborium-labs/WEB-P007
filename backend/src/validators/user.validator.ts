@@ -14,6 +14,21 @@ import { usernameSchema } from "./common.validator.js";
 
 const phoneRegex = /^\+?[0-9][0-9\s-]{6,16}$/;
 
+/**
+ * Password strength rules shared by the change-password and set-password
+ * flows, so the two can never drift apart.
+ */
+const passwordSchema = z
+    .string("New password is required.")
+    .min(8, "Use at least 8 characters for your password.")
+    .max(72, "Password cannot exceed 72 characters.")
+    .regex(/[A-Z]/, "Must include at least one uppercase letter.")
+    .regex(/[a-z]/, "Must include at least one lowercase letter.")
+    .regex(/[0-9]/, "Must include at least one number.")
+    .refine((value) => value.length > 0, {
+        message: "New password is required.",
+    });
+
 export const updateProfileSchema = {
     // `.strict()`: unknown keys are rejected instead of silently stripped, so
     // a mass-assignment attempt (role, email, activeStatus, …) fails loudly.
@@ -67,16 +82,7 @@ export const changePasswordSchema = {
             currentPassword: z
                 .string("Current password is required.")
                 .min(1, "Enter your current password."),
-            newPassword: z
-                .string("New password is required.")
-                .min(8, "Use at least 8 characters for your password.")
-                .max(72, "Password cannot exceed 72 characters.")
-                .regex(/[A-Z]/, "Must include at least one uppercase letter.")
-                .regex(/[a-z]/, "Must include at least one lowercase letter.")
-                .regex(/[0-9]/, "Must include at least one number.")
-                .refine((value) => value.length > 0, {
-                    message: "New password is required.",
-                }),
+            newPassword: passwordSchema,
             confirmPassword: z
                 .string("Please confirm your new password.")
                 .min(1, "Please confirm your new password."),
@@ -93,3 +99,32 @@ export const changePasswordSchema = {
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema.body>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema.body>;
+
+/**
+ * Sets the first local password on a Google-linked account.
+ *
+ * `email` is a deliberate confirmation step (the user retypes it), not a
+ * change request: `user.service` still compares it case-insensitively against
+ * the stored account email before anything is written.
+ */
+export const setPasswordSchema = {
+    body: z
+        .object({
+            email: z
+                .string("Email is required.")
+                .trim()
+                .toLowerCase()
+                .email("Enter a valid email address."),
+            password: passwordSchema,
+            confirmPassword: z
+                .string("Please confirm your password.")
+                .min(1, "Please confirm your password."),
+        })
+        .strict()
+        .refine((data) => data.password === data.confirmPassword, {
+            message: "Passwords do not match.",
+            path: ["confirmPassword"],
+        }),
+};
+
+export type SetPasswordInput = z.infer<typeof setPasswordSchema.body>;
