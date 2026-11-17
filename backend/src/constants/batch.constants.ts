@@ -7,8 +7,9 @@ export const MAX_BATCH_DURATION_DAYS = 366;
 /** Upper bound on HR owners attached to a single batch. */
 export const MAX_HR_PER_BATCH = 20;
 
-export const DEFAULT_PAGE_SIZE = 20;
-export const MAX_PAGE_SIZE = 100;
+// Re-exported so existing `batch.constants.js` imports keep working; the
+// canonical home is now `pagination.constants.js` (shared across domains).
+export { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "./pagination.constants.js";
 
 export const BATCH_SORT_FIELDS = [
     "startDate",

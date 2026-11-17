@@ -45,3 +45,32 @@ export const InfoIcon = (p: IconProps) => (
 );
 
 export const ArrowUpRightIcon = (p: IconProps) => <Base d="M17 17V7H7M17 7L7 17" {...p} />;
+
+export const CheckIcon = (p: IconProps) => <Base d="M20 6L9 17L4 12" {...p} />;
+
+export const CloseIcon = (p: IconProps) => <Base d="M18 6L6 18M6 6L18 18" {...p} />;
+
+export const ArrowRightIcon = (p: IconProps) => <Base d="M5 12H19M19 12L12 5M19 12L12 19" {...p} />;
+
+export const SpinnerIcon = (p: IconProps) => (
+    <Base
+        d="M21 12.0004C20.9999 13.901 20.3981 15.7528 19.2809 17.2904C18.1637 18.8279 16.5885 19.9723 14.7809 20.5596C12.9733 21.1469 11.0262 21.1468 9.21864 20.5594C7.41109 19.9721 5.83588 18.8276 4.71876 17.29C3.60165 15.7523 2.99999 13.9005 3 11.9999C3.00001 10.0993 3.60171 8.24755 4.71884 6.70994C5.83598 5.17233 7.4112 4.02785 9.21877 3.44052C11.0263 2.85319 12.9734 2.85316 14.781 3.44044"
+        {...p}
+    />
+);
+
+/** Filled dot used for pending timeline steps. */
+export const DotIcon = ({ size = 24, ...props }: IconProps & { size?: number }) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        focusable="false"
+        {...props}
+    >
+        <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" />
+    </svg>
+);

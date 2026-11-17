@@ -3,6 +3,7 @@ import {
     useCallback,
     useEffect,
     useLayoutEffect,
+    useMemo,
     useState,
     useSyncExternalStore,
     type ReactNode,
@@ -10,18 +11,29 @@ import {
 } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
+import { UsersIcon } from "../ui/icons";
+import { useAuthStore } from "../../store/auth.store";
+
 /* -------------------------------------------------------------------------- */
-/*  Visibility control                                                         */
+/*  Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
 const SIDEBAR_WIDTH = 272;
 const COLLAPSED_WIDTH = 72;
+const TOPBAR_HEIGHT = 56;
 const STORAGE_KEY = "sidebar-collapsed";
+const SIDEBAR_ID = "app-sidebar";
+/** Matches Tailwind's `lg` breakpoint. At/above this the sidebar is docked. */
+const DESKTOP_QUERY = "(min-width: 1024px)";
 
 /** Exact-match routes where the sidebar is hidden. */
 const HIDDEN_EXACT: readonly string[] = ["/"];
 /** Prefix-match routes where the sidebar is hidden. */
 const HIDDEN_PREFIXES: readonly string[] = ["/auth", "/terms-and-services"];
+
+/* -------------------------------------------------------------------------- */
+/*  Visibility control                                                         */
+/* -------------------------------------------------------------------------- */
 
 /** Tiny external store: counts mounted components that asked to hide the sidebar. */
 let hideRequests = 0;
@@ -50,6 +62,22 @@ export function useHideSidebar(hidden: boolean = true): void {
             emit();
         };
     }, [hidden]);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Viewport hook                                                              */
+/* -------------------------------------------------------------------------- */
+
+const subscribeDesktop = (cb: () => void) => {
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    mq.addEventListener("change", cb);
+    return () => mq.removeEventListener("change", cb);
+};
+const getDesktopSnapshot = () => window.matchMedia(DESKTOP_QUERY).matches;
+const getDesktopServerSnapshot = () => true;
+
+function useIsDesktop(): boolean {
+    return useSyncExternalStore(subscribeDesktop, getDesktopSnapshot, getDesktopServerSnapshot);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -85,6 +113,14 @@ const CollapseIcon = (p: IconProps) => (
         {...p}
     />
 );
+const DrawerIcon = (p: IconProps) => (
+    <StrokeIcon
+        d="M9 3V21M5 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3Z"
+        {...p}
+    />
+);
+const MenuIcon = (p: IconProps) => <StrokeIcon d="M4 6H20M4 12H20M4 18H20" {...p} />;
+const CloseIcon = (p: IconProps) => <StrokeIcon d="M6 6L18 18M18 6L6 18" {...p} />;
 const DashboardIcon = (p: IconProps) => (
     <StrokeIcon
         d="M4 3H9C9.55228 3 10 3.44772 10 4V11C10 11.5523 9.55228 12 9 12H4C3.44772 12 3 11.5523 3 11V4C3 3.44772 3.44772 3 4 3ZM15 3H20C20.5523 3 21 3.44772 21 4V7C21 7.55228 20.5523 8 20 8H15C14.4477 8 14 7.55228 14 7V4C14 3.44772 14.4477 3 15 3ZM15 12H20C20.5523 12 21 12.4477 21 13V20C21 20.5523 20.5523 21 20 21H15C14.4477 21 14 20.5523 14 20V13C14 12.4477 14.4477 12 15 12ZM4 16H9C9.55228 16 10 16.4477 10 17V20C10 20.5523 9.55228 21 9 21H4C3.44772 21 3 20.5523 3 20V17C3 16.4477 3.44772 16 4 16Z"
@@ -178,9 +214,17 @@ const NAV_ITEMS: readonly NavItem[] = [
     { label: "Tickets", to: "/tickets", icon: TicketsIcon },
 ];
 
+/** Rendered directly after "Dashboard" and only for admins. */
+const ADMIN_NAV_ITEMS: readonly NavItem[] = [
+    { label: "Users", to: "/admin/users", icon: UsersIcon },
+];
+
 /* -------------------------------------------------------------------------- */
 /*  Components                                                                 */
 /* -------------------------------------------------------------------------- */
+
+const ICON_BUTTON =
+    "flex h-10 w-10 shrink-0 items-center justify-center rounded-md p-1.5 text-ink outline-none transition-colors hover:bg-grey-50 focus-visible:ring-2 focus-visible:ring-ink/30";
 
 const SidebarLink = memo(function SidebarLink({
     item,
@@ -196,7 +240,7 @@ const SidebarLink = memo(function SidebarLink({
                 to={item.to}
                 title={collapsed ? item.label : undefined}
                 aria-label={collapsed ? item.label : undefined}
-                className={`flex h-10 w-full items-center rounded-md p-1.5 text-ink outline-none transition-colors hover:bg-grey-50 focus-visible:ring-2 focus-visible:ring-ink/30`}
+                className="flex h-10 w-full items-center rounded-md p-1.5 text-ink outline-none transition-colors hover:bg-grey-50 focus-visible:ring-2 focus-visible:ring-ink/30"
             >
                 <Icon className="h-6 w-6 shrink-0" />
                 <span
@@ -213,6 +257,17 @@ const SidebarLink = memo(function SidebarLink({
 
 export default function Sidebar() {
     const { pathname } = useLocation();
+    const isDesktop = useIsDesktop();
+    const role = useAuthStore((s) => s.user?.role);
+
+    /** Admins get the user directory right after their dashboard entry. */
+    const navItems = useMemo(() => {
+        if (role !== "ADMIN") return NAV_ITEMS;
+        const [dashboard, ...rest] = NAV_ITEMS;
+        return [dashboard, ...ADMIN_NAV_ITEMS, ...rest];
+    }, [role]);
+
+    /** Internal view: expanded (labels) vs. collapsed (icon rail). Persisted. */
     const [collapsed, setCollapsed] = useState<boolean>(() => {
         try {
             return localStorage.getItem(STORAGE_KEY) === "1";
@@ -220,8 +275,20 @@ export default function Sidebar() {
             return false;
         }
     });
+    /** Whole-sidebar visibility on < lg viewports (off-canvas drawer). Not persisted. */
+    const [open, setOpen] = useState(false);
 
-    const toggle = useCallback(() => {
+    const forcedHidden = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+    const routeHidden =
+        HIDDEN_EXACT.includes(pathname) ||
+        HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+    const hidden = forcedHidden || routeHidden;
+
+    const visible = isDesktop || open;
+    const drawerOpen = !isDesktop && open && !hidden;
+    const width = collapsed ? COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+
+    const toggleCollapsed = useCallback(() => {
         setCollapsed((c) => {
             const next = !c;
             try {
@@ -233,67 +300,158 @@ export default function Sidebar() {
         });
     }, []);
 
-    const width = collapsed ? COLLAPSED_WIDTH : SIDEBAR_WIDTH;
-    const forcedHidden = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+    const toggleOpen = useCallback(() => setOpen((o) => !o), []);
+    const closeDrawer = useCallback(() => setOpen(false), []);
 
-    const routeHidden =
-        HIDDEN_EXACT.includes(pathname) ||
-        HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+    /** Bottom-right FAB: toggles the internal view; on small screens it also reveals the drawer. */
+    const onFabClick = useCallback(() => {
+        toggleCollapsed();
+        if (!isDesktop) setOpen(true);
+    }, [isDesktop, toggleCollapsed]);
 
-    const hidden = forcedHidden || routeHidden;
+    // Close the drawer on navigation.
+    useEffect(() => {
+        setOpen(false);
+    }, [pathname]);
 
-    // Reserve space for the fixed sidebar so page content never sits underneath it.
+    // Drawer a11y: Escape to close + lock background scroll.
+    useEffect(() => {
+        if (!drawerOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setOpen(false);
+        };
+        const root = document.documentElement;
+        const prevOverflow = root.style.overflow;
+        root.style.overflow = "hidden";
+        window.addEventListener("keydown", onKeyDown);
+        return () => {
+            root.style.overflow = prevOverflow;
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, [drawerOpen]);
+
+    // Reserve space for the sidebar (left, desktop) or the top bar (top, mobile/tablet).
     useLayoutEffect(() => {
         if (hidden) return;
-        const prev = document.body.style.paddingLeft;
-        const prevTransition = document.body.style.transition;
-        document.body.style.transition = "padding-left 300ms ease-in-out";
-        document.body.style.paddingLeft = `${width}px`;
-        return () => {
-            document.body.style.paddingLeft = prev;
-            document.body.style.transition = prevTransition;
+        const { style } = document.body;
+        const prev = {
+            left: style.paddingLeft,
+            top: style.paddingTop,
+            transition: style.transition,
         };
-    }, [hidden, width]);
+        style.transition = "padding-left 300ms ease-in-out";
+        if (isDesktop) {
+            style.paddingLeft = `${width}px`;
+        } else {
+            style.paddingTop = `${TOPBAR_HEIGHT}px`;
+        }
+        return () => {
+            style.paddingLeft = prev.left;
+            style.paddingTop = prev.top;
+            style.transition = prev.transition;
+        };
+    }, [hidden, isDesktop, width]);
 
     if (hidden) return null;
 
     return (
-        <aside
-            style={{ width }}
-            className="fixed left-0 top-0 z-40 h-screen overflow-hidden transition-[width] duration-300 ease-in-out motion-reduce:transition-none border-r border-grey-50 bg-surface px-4 py-8"
-        >
-            <div className="flex w-full flex-col items-start gap-9">
-                <div
-                    className={`flex items-center justify-between transition-[width] duration-300 ease-in-out motion-reduce:transition-none ${collapsed ? "w-10" : "w-60"}`}
+        <>
+            {/* Top toggle bar — shows/hides the entire sidebar on < lg */}
+            <header
+                className="fixed inset-x-0 top-0 z-30 flex items-center gap-2 border-b border-grey-50 bg-surface px-3 lg:hidden"
+                style={{ height: TOPBAR_HEIGHT }}
+            >
+                <button
+                    type="button"
+                    onClick={toggleOpen}
+                    aria-label={open ? "Close sidebar" : "Open sidebar"}
+                    aria-expanded={open}
+                    aria-controls={SIDEBAR_ID}
+                    className={ICON_BUTTON}
                 >
-                    <Link
-                        to="/dashboard"
-                        aria-label="Home"
-                        tabIndex={collapsed ? -1 : 0}
-                        className={`flex h-10 items-center justify-center overflow-hidden rounded-md transition-[width,opacity] duration-300 ease-in-out motion-reduce:transition-none ${collapsed ? "pointer-events-none w-0 p-0 opacity-0" : "w-[39px] p-1.5 opacity-100"
+                    {open ? <CloseIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+                </button>
+                <Link
+                    to="/dashboard"
+                    aria-label="Home"
+                    className="flex h-10 items-center rounded-md p-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
+                >
+                    <Logo />
+                </Link>
+            </header>
+
+            {/* Backdrop (< lg only) */}
+            <div
+                aria-hidden="true"
+                onClick={closeDrawer}
+                className={`fixed inset-0 z-40 bg-ink/40 transition-opacity duration-300 ease-in-out motion-reduce:transition-none lg:hidden ${drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+                    }`}
+            />
+
+            {/* Sidebar */}
+            <aside
+                id={SIDEBAR_ID}
+                aria-hidden={!visible}
+                style={{ width: `min(${width}px, 85vw)`, height: "100dvh" }}
+                className={`fixed left-0 top-0 z-50 h-screen overflow-y-auto overflow-x-hidden overscroll-contain border-r border-grey-50 bg-surface px-4 py-8 transition-[width,transform,visibility] duration-300 ease-in-out motion-reduce:transition-none ${visible ? "visible translate-x-0" : "invisible -translate-x-full"
+                    } ${drawerOpen ? "shadow-xl" : ""} lg:visible lg:translate-x-0 lg:shadow-none`}
+            >
+                <div className="flex w-full flex-col items-start gap-9">
+                    <div
+                        className={`flex items-center justify-between transition-[width] duration-300 ease-in-out motion-reduce:transition-none ${collapsed ? "w-10" : "w-full"
                             }`}
                     >
-                        <Logo />
-                    </Link>
-                    <button
-                        type="button"
-                        onClick={toggle}
-                        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                        aria-expanded={!collapsed}
-                        className="flex h-10 w-10 items-center justify-center rounded-md p-1.5 text-ink outline-none transition-colors hover:bg-grey-50 focus-visible:ring-2 focus-visible:ring-ink/30"
-                    >
-                        <CollapseIcon className={`h-6 w-6 ${collapsed ? "rotate-180" : ""}`} />
-                    </button>
-                </div>
+                        <Link
+                            to="/dashboard"
+                            aria-label="Home"
+                            tabIndex={collapsed ? -1 : 0}
+                            className={`flex h-10 items-center justify-center overflow-hidden rounded-md transition-[width,opacity] duration-300 ease-in-out motion-reduce:transition-none ${collapsed
+                                    ? "pointer-events-none w-0 p-0 opacity-0"
+                                    : "w-[39px] p-1.5 opacity-100"
+                                }`}
+                        >
+                            <Logo />
+                        </Link>
+                        {/* Inner toggle — collapses/expands the sidebar internals */}
+                        <button
+                            type="button"
+                            onClick={toggleCollapsed}
+                            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                            aria-expanded={!collapsed}
+                            className={ICON_BUTTON}
+                        >
+                            <CollapseIcon
+                                className={`h-6 w-6 transition-transform duration-300 motion-reduce:transition-none ${collapsed ? "rotate-180" : ""
+                                    }`}
+                            />
+                        </button>
+                    </div>
 
-                <nav aria-label="Main" className="w-full">
-                    <ul className="flex w-full flex-col items-start gap-2.5">
-                        {NAV_ITEMS.map((item) => (
-                            <SidebarLink key={item.to} item={item} collapsed={collapsed} />
-                        ))}
-                    </ul>
-                </nav>
-            </div>
-        </aside>
+                    <nav aria-label="Main" className="w-full">
+                        <ul className="flex w-full flex-col items-start gap-2.5">
+                            {navItems.map((item) => (
+                                <SidebarLink key={item.to} item={item} collapsed={collapsed} />
+                            ))}
+                        </ul>
+                    </nav>
+                </div>
+            </aside>
+
+            {/* Bottom-right drawer button — toggles the internal sidebar view */}
+            <button
+                type="button"
+                onClick={onFabClick}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-controls={SIDEBAR_ID}
+                aria-pressed={!collapsed}
+                style={{
+                    right: "max(1rem, env(safe-area-inset-right))",
+                    bottom: "max(1rem, env(safe-area-inset-bottom))",
+                }}
+                className="fixed z-[60] flex h-12 w-12 items-center justify-center rounded-full border border-grey-50 bg-surface text-ink shadow-lg outline-none transition-[transform,background-color] duration-200 hover:bg-grey-50 focus-visible:ring-2 focus-visible:ring-ink/30 active:scale-95 motion-reduce:transition-none"
+            >
+                <DrawerIcon className="h-6 w-6" />
+            </button>
+        </>
     );
 }

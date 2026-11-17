@@ -5,6 +5,7 @@ const GRADIENTS = {
 
 const SIZES = {
     md: "size-8 text-sm leading-5",
+    lg: "size-12 text-base leading-6",
     xs: "h-[13px] w-3 text-[5px] leading-[7.5px]",
 } as const;
 
