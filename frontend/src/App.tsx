@@ -24,6 +24,9 @@ import AuthFailurePage from "./page/AuthFailurePage";
 import GoogleSignupRolePage from "./page/GoogleSignupRolePage";
 import ProfilePage from "./page/ProfilePage";
 import { ProtectedRoute } from "./component/ProtectedRoute";
+import { RequireRole } from "./component/RequireRole";
+import UsersPage from "./page/admin/UsersPage";
+import UserDetailPage from "./page/admin/UserDetailPage";
 import { dashboardPathForRole } from "./lib/routes";
 import { useAuthStore } from "./store/auth.store";
 
@@ -153,7 +156,12 @@ export default function App() {
               <Route path="/intern/dashboard" element={<InternDashboard />} />
               <Route path="/gpm/dashboard" element={<GroupManagerDashboard />} />
               <Route path="/hr/dashboard" element={<HrDashboard />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              {/* Admin surface — gated by role on top of authentication. */}
+              <Route element={<RequireRole roles={["ADMIN"]} />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/users" element={<UsersPage />} />
+                <Route path="/admin/users/:userId" element={<UserDetailPage />} />
+              </Route>
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
 

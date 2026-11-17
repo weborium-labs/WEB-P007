@@ -1,6 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useDocumentTitle } from "../../../hooks/useDocumentTitle";
 import { useLogoutMutation } from "../../../hooks/useAuthMutations";
+import { isOnboardingComplete } from "../../../lib/onboarding";
+import { useAuthStore } from "../../../store/auth.store";
+import OnboardingCard from "../../../component/onboarding/OnboardingCard";
 import ChatsPanel from "../../../component/intern-dashboard/ChatsPanel";
 import OverviewStats from "../../../component/intern-dashboard/OverviewStats";
 import Salutation from "../../../component/intern-dashboard/Salutation";
@@ -17,6 +20,8 @@ const InternDashBoard = () => {
   useDocumentTitle("Intern Dashboard");
   const navigate = useNavigate();
   const logoutMutation = useLogoutMutation();
+  const verificationStatus = useAuthStore((s) => s.user?.verificationStatus);
+  const showOnboarding = !isOnboardingComplete(verificationStatus);
 
   const handleLogout = async () => {
     // Prevent duplicate submissions while the request is in flight.
@@ -48,6 +53,12 @@ const InternDashBoard = () => {
           onLogout={handleLogout}
         />
       </header>
+
+      {showOnboarding && (
+        <div className="mt-7">
+          <OnboardingCard />
+        </div>
+      )}
 
       <div className="mt-7 grid flex-1 grid-cols-1 gap-11 @min-[1200px]:grid-cols-[minmax(0,798px)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-[51px]">

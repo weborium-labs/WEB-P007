@@ -1,4 +1,4 @@
-import type { Chat, InternshipOption, OverviewStat, Task } from "../types/types";
+import type { BatchPreview, Chat, InternshipOption, OnboardingDocument, OverviewStat, Task } from "../types/types";
 
 /** Placeholder data — replace with API responses. */
 export const INTERN_NAME = "Divyesh Moraniya";
@@ -76,4 +76,27 @@ export const CHATS: readonly Chat[] = [
         preview: "Everyone Join Meeting!!!",
         time: "1:15PM",
     },
+];
+
+/* ----------------------------- Onboarding ----------------------------- */
+
+/** Pre-filled in the batch input while `USE_MOCK` is on (see hooks/useOnboarding.ts). */
+export const DEMO_BATCH_CODE = "IISPPR-JAN-MAR-XMGH";
+
+/** Placeholder batch returned by the mocked lookup — replace with API response. */
+export const MOCK_BATCH: BatchPreview = {
+    id: "batch-demo-1",
+    code: DEMO_BATCH_CODE,
+    institute: "IISPPR",
+    batch: "Jan – Mar",
+    startDate: "2027-01-05",
+    endDate: "2027-03-31",
+    hrName: "Ananya Rao",
+};
+
+export const ONBOARDING_DOCUMENTS: readonly OnboardingDocument[] = [
+    { type: "aadhaar", label: "Aadhaar Card" },
+    { type: "pan", label: "PAN Card" },
+    { type: "ssc", label: "SSC Marksheet" },
+    { type: "hsc", label: "HSC Marksheet" },
 ];
